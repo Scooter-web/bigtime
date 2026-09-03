@@ -6,27 +6,18 @@
 <title>Big Time Dashboard</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { 
-    height:100%; width:100%; background:#000; color:#fff;
-    font-family:-apple-system, BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    overflow:hidden; 
-  }
+  html, body { height:100%; width:100%; background:#000; color:#fff; font-family:-apple-system, BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif; overflow:hidden; }
   body { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; }
-  
   .container { text-align:center; margin-top:-5vh; width:100%; max-width:900px; }
-  
   .day { font-size:3.5rem; font-weight:600; margin-bottom:0.5vh; color: #eee; }
   .weather-row { font-size:3.2rem; margin-bottom:1.5vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
   .rain-row { font-size:1.6rem; margin-bottom:2vh; display:flex; justify-content:center; gap:1.5rem; }
   .date { font-size:3.2rem; font-weight:400; color: #ccc; margin-bottom: 0.5vh; }
   .time { font-size:4.5rem; font-weight:700; color: #fff; }
-
   .temp { color:#ff9500; font-weight:600; }
   .hi { color:#ff6b35; font-size: 1.8rem; margin-left: 8px; font-weight: 500; }
   .rain-label { color:#8ab4e0; }
   .rain-value { color:#7ec8ff; font-weight:500; }
-
-  /* Settings UI */
   .settings-btn { position:fixed; bottom:20px; right:20px; width:44px; height:44px; border:none; background:transparent; color:#555; font-size:1.8rem; cursor:pointer; z-index: 10; }
   .settings-panel { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:none; padding:20px; z-index:100; align-items:center; justify-content:center; }
   .settings-panel.open { display:flex; }
@@ -90,122 +81,211 @@
 </div>
 
 <script>
-// Icon mapping for Open-Meteo
-const icons = {0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌦️",61:"🌧️",63:"🌧️",65:"🌧️",71:"🌨️",73:"🌨️",75:"🌨️",80:"🌦️",81:"🌧️",82:"🌧️",95:"⛈️",96:"⛈️",99:"⛈️"};
-
-// 1. Clock Logic
+// Clock
 function updateClock(){
   const now = new Date();
-  document.getElementById("day").textContent = now.toLocaleDateString("en-US",{weekday:"long"});
+  document.getElementById('day').textContent = now.toLocaleDateString('en-US',{weekday:'long'});
   const h = now.getHours();
-  const period = (h<12?"Morning":h<17?"Afternoon":h<21?"Evening":"Night");
-  document.getElementById("period").textContent = period;
+  const period = (h<12? 'Morning' : h<17? 'Afternoon' : h<21? 'Evening' : 'Night');
+  document.getElementById('period').textContent = period;
   const hh = h % 12 || 12;
-  const mm = String(now.getMinutes()).padStart(2,"0");
-  document.getElementById("time").textContent = hh + ":" + mm + " " + (h>=12?"PM":"AM");
-  document.getElementById("date").textContent = now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('time').textContent = hh + ':' + mm + ' ' + (h>=12? 'PM' : 'AM');
+  document.getElementById('date').textContent = now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 }
+setInterval(updateClock,1000);
+updateClock();
 
-// 2. Heat Index Calculation
-function calcHeatIndex(T, R) {
-  if (T < 80) return Math.round(0.5 * (T + 61 + ((T - 68) * 1.2) + (R * 0.094)));
-  const HI = -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 0.00683783 * T * T - 0.05481717 * R * R + 0.00122874 * T * T * R + 0.00085282 * T * R * R - 0.00000199 * T * T * R * R;
+// Heat Index (T in °F, R in %)
+function heatIndex(T,R){
+  if (T == null || R == null) return null;
+  if (T < 80) return Math.round(0.5*(T+61+((T-68)*1.2)+(R*0.094)));
+  const HI = -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 6.83783e-3 * T * T - 5.481717e-2 * R * R + 1.22874e-3 * T * T * R + 8.5282e-4 * T * R * R - 1.99e-6 * T * T * R * R;
   return Math.round(HI);
 }
 
-// 3. Data Fetching Functions
-function fetchOutdoor() {
-  const L = {huntertown:{lat:41.228,lon:-85.172}, fortwayne:{lat:41.079,lon:-85.139}, indianapolis:{lat:39.768,lon:-86.158}};
-  const key = document.getElementById("locationSelect").value;
-  
-  if (key === "auto" && navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => doFetch(pos.coords.latitude, pos.coords.longitude), () => doFetch(L.huntertown.lat, L.huntertown.lon));
-  } else {
-    doFetch(L[key].lat, L[key].lon);
-  }
-
-  function doFetch(lat, lon) {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=precipitation_sum&temperature_unit=fahrenheit&timezone=auto&past_days=1`;
-    fetch(url).then(r => r.json()).then(d => {
-      const t = Math.round(d.current.temperature_2m);
-      document.getElementById("temp").textContent = t + "°F";
-      document.getElementById("weatherIcon").textContent = icons[d.current.weather_code] || "☀️";
-      document.getElementById("heatIndex").textContent = "Feels " + calcHeatIndex(t, d.current.relative_humidity_2m) + "°";
-      document.getElementById("rainYesterday").textContent = d.daily.precipitation_sum[0] + "\"";
-      document.getElementById("rainToday").textContent = d.daily.precipitation_sum[1] + "\"";
-      document.getElementById("status").textContent = "";
-    }).catch(() => { document.getElementById("status").textContent = "Outdoor service error"; });
-  }
+// Map open-meteo weathercode to emoji (basic)
+function weatherEmoji(code){
+  if (code === 0) return '☀️';
+  if (code === 1 || code === 2 || code === 3) return '⛅';
+  if ([45,48].includes(code)) return '🌫️';
+  if ([51,53,55,56,57].includes(code)) return '🌦️';
+  if ([61,63,65,66,67].includes(code)) return '🌧️';
+  if ([71,73,75,77,85,86].includes(code)) return '🌨️';
+  if ([80,81,82].includes(code)) return '🌧️';
+  if ([95,96,99].includes(code)) return '⛈️';
+  return '🌤️';
 }
 
-function fetchPWS() {
-  const url = "https://api.weather.com/v2/pws/observations/current?stationId=KINHUNTE19&format=json&units=e&apiKey=36cdfa6e59d844088dfa6e59d8640844";
-  fetch(url).then(r => r.json()).then(d => {
-    const obs = d.observations[0];
-    document.getElementById("temp").textContent = Math.round(obs.imperial.temp) + "°F";
-    document.getElementById("weatherIcon").textContent = "🌡️";
-    document.getElementById("heatIndex").textContent = "Real Feel " + Math.round(obs.imperial.heatIndex) + "°";
-    document.getElementById("rainToday").textContent = obs.imperial.precipTotal + "\"";
-    document.getElementById("rainYesterday").textContent = obs.imperial.precipRate + "\"";
-    document.getElementById("status").textContent = "";
-  }).catch(() => { document.getElementById("status").textContent = "PWS offline or API error"; });
-}
-
-function fetchTag() {
-  const uuid = document.getElementById("uuidInput").value;
-  if (!uuid) { document.getElementById("status").textContent = "Enter UUID in settings"; return; }
-  fetch("https://my.wirelesstag.net/ethLogs.asmx/GetTagByUUID?uuid=" + uuid).then(r => r.json()).then(d => {
-    const t = Math.round(d.temperature);
-    document.getElementById("temp").textContent = t + "°F";
-    document.getElementById("weatherIcon").textContent = "🌡️";
-    document.getElementById("heatIndex").textContent = "Real Feel " + calcHeatIndex(t, d.humidity) + "°";
-    document.getElementById("rainToday").textContent = d.rainToday + "\"";
-    document.getElementById("rainYesterday").textContent = d.rainYesterday + "\"";
-    document.getElementById("status").textContent = "";
-  }).catch(() => { document.getElementById("status").textContent = "Wireless Tag error"; });
-}
-
-function fetchTemp() {
-  const src = document.getElementById("sourceSelect").value;
-  if (src === "pws") fetchPWS();
-  else if (src === "wirelesstag") fetchTag();
-  else fetchOutdoor();
-}
-
-// 4. Settings Management
-function toggleInputRows() {
-  const src = document.getElementById("sourceSelect").value;
-  document.getElementById("uuidRow").style.display = (src === "wirelesstag") ? "block" : "none";
-  document.getElementById("outdoorLocRow").style.display = (src === "outdoor") ? "block" : "none";
-}
-
-document.getElementById("settingsBtn").onclick = () => {
-  document.getElementById("settingsPanel").classList.add("open");
+// Coordinates for named locations (approx)
+const LOCS = {
+  huntertown: { lat: 40.9670, lon: -85.1655 },
+  fortwayne:  { lat: 41.0793, lon: -85.1394 },
+  indianapolis:{ lat: 39.7684, lon: -86.1581 }
 };
 
-document.getElementById("closeSettings").onclick = () => {
-  saveSettings();
-  document.getElementById("settingsPanel").classList.remove("open");
-  fetchTemp();
-};
+// Fetch weather from Open-Meteo and update UI
+async function fetchOutdoorWeather(key){
+  try {
+    let coords;
+    if (key === 'auto'){
+      coords = await new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(LOCS.huntertown);
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          () => resolve(LOCS.huntertown),
+          { timeout: 5000 }
+        );
+      });
+    } else {
+      coords = LOCS[key] || LOCS.huntertown;
+    }
 
-function saveSettings() {
-  localStorage.setItem("src", document.getElementById("sourceSelect").value);
-  localStorage.setItem("uuid", document.getElementById("uuidInput").value);
-  localStorage.setItem("loc", document.getElementById("locationSelect").value);
+    const now = new Date();
+    const today = now.toISOString().slice(0,10);
+    const yesterdayDate = new Date(now.getTime() - 24*60*60*1000);
+    const yesterday = yesterdayDate.toISOString().slice(0,10);
+
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}`+
+                `&current_weather=true&hourly=relativehumidity_2m,temperature_2m&daily=precipitation_sum&start_date=${yesterday}&end_date=${today}&timezone=auto`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
+    const data = await res.json();
+
+    const current = data.current_weather || {};
+    const tempC = current.temperature; // °C
+    const weathercode = current.weathercode;
+    const tempF = tempC == null ? null : Math.round((tempC * 9/5) + 32);
+
+    // humidity: find current hour in hourly times
+    let humidity = null;
+    if (data.hourly && data.hourly.time && data.hourly.relativehumidity_2m){
+      const times = data.hourly.time;
+      const hums = data.hourly.relativehumidity_2m;
+      const nowHourISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours()).toISOString().slice(0,13);
+      let bestIdx = -1;
+      for (let i=0;i<times.length;i++){
+        if (times[i].slice(0,13) === nowHourISO){ bestIdx = i; break; }
+      }
+      if (bestIdx === -1) bestIdx = Math.max(0, times.length - 1);
+      humidity = hums[bestIdx];
+    }
+
+    // daily precipitation_sum
+    let rainToday = '—', rainYesterday = '—';
+    if (data.daily && data.daily.time && data.daily.precipitation_sum){
+      for (let i=0;i<data.daily.time.length;i++){
+        const d = data.daily.time[i];
+        if (d === today) rainToday = data.daily.precipitation_sum[i] + ' mm';
+        if (d === yesterday) rainYesterday = data.daily.precipitation_sum[i] + ' mm';
+      }
+      if (rainToday === '—' && data.daily.precipitation_sum.length){
+        const last = data.daily.precipitation_sum[data.daily.precipitation_sum.length-1];
+        if (last != null) rainToday = last + ' mm';
+      }
+    }
+
+    // update DOM
+    if (tempF != null) document.getElementById('temp').textContent = tempF + '°F';
+    else document.getElementById('temp').textContent = '—°F';
+    document.getElementById('weatherIcon').textContent = weatherEmoji(weathercode);
+    document.getElementById('rainToday').textContent = rainToday;
+    document.getElementById('rainYesterday').textContent = rainYesterday;
+
+    if (tempF != null && humidity != null){
+      const hi = heatIndex(tempF, humidity);
+      if (hi != null) document.getElementById('heatIndex').textContent = ' · HI ' + hi + '°';
+      else document.getElementById('heatIndex').textContent = '';
+    } else {
+      document.getElementById('heatIndex').textContent = '';
+    }
+
+    document.getElementById('status').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+  } catch (err){
+    console.error(err);
+    document.getElementById('status').textContent = 'Weather error: ' + (err.message || err);
+  }
 }
 
-function loadSettings() {
-  const s = localStorage.getItem("src") || "outdoor";
-  const u = localStorage.getItem("uuid") || "";
-  const l = localStorage.getItem("loc") || "huntertown";
-
-  document.getElementById("sourceSelect").value = s;
-  document.getElementById("uuidInput").value = u;
-  document.getElementById("locationSelect").value = l;
-  
-  toggleInputRows();
+// PWS placeholder
+function fetchPWSStation(){
+  // Implementing PWS requires an API and key (e.g., Weather Underground / Weather.com PWS endpoints).
+  // This is a placeholder: show user-facing guidance and fall back to outdoor.
+  document.getElementById('status').textContent = 'PWS selected: station support requires an API key. Provide endpoint/key to enable.';
 }
 
-// Update UI rows when dropdown changes (without saving yet)
-do
+// WirelessTag placeholder
+function fetchWirelessTag(uuid){
+  if (!uuid){
+    document.getElementById('status').textContent = 'WirelessTag selected: enter Tag UUID in settings.';
+    return;
+  }
+  // WirelessTag generally requires authenticated API access and may need a server-side proxy for CORS.
+  document.getElementById('status').textContent = 'WirelessTag selected: WirelessTag API requires authentication and a proxy; configure backend to fetch data.';
+}
+
+// Update UI based on selected source
+function updateFromSource(){
+  const src = document.getElementById('sourceSelect').value;
+  const loc = document.getElementById('locationSelect').value;
+  const uuid = document.getElementById('uuidInput').value.trim();
+  if (src === 'outdoor') fetchOutdoorWeather(loc);
+  else if (src === 'pws') fetchPWSStation();
+  else if (src === 'wirelesstag') fetchWirelessTag(uuid);
+}
+
+// Settings and persistence
+const sourceSelect = document.getElementById('sourceSelect');
+const locationSelect = document.getElementById('locationSelect');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const closeSettings = document.getElementById('closeSettings');
+const uuidRow = document.getElementById('uuidRow');
+const uuidInput = document.getElementById('uuidInput');
+
+function loadSettings(){
+  try{
+    const s = localStorage.getItem('bigtime.settings');
+    if (s){
+      const parsed = JSON.parse(s);
+      if (parsed.source) sourceSelect.value = parsed.source;
+      if (parsed.location) locationSelect.value = parsed.location;
+      if (parsed.uuid) uuidInput.value = parsed.uuid;
+    }
+  }catch(e){console.warn('Failed to load settings', e);}  
+  toggleUUIDRow();
+}
+
+function saveSettings(){
+  const obj = { source: sourceSelect.value, location: locationSelect.value, uuid: uuidInput.value.trim() };
+  try{ localStorage.setItem('bigtime.settings', JSON.stringify(obj)); }
+  catch(e){ console.warn('Failed to save settings', e); }
+}
+
+function toggleUUIDRow(){
+  if (sourceSelect.value === 'wirelesstag') uuidRow.style.display = 'block';
+  else uuidRow.style.display = 'none';
+}
+
+// event listeners
+settingsBtn.addEventListener('click', ()=> settingsPanel.classList.add('open'));
+closeSettings.addEventListener('click', ()=> { settingsPanel.classList.remove('open'); saveSettings(); updateFromSource(); });
+sourceSelect.addEventListener('change', ()=> { toggleUUIDRow(); saveSettings(); updateFromSource(); });
+locationSelect.addEventListener('change', ()=> { saveSettings(); if (sourceSelect.value === 'outdoor') fetchOutdoorWeather(locationSelect.value); });
+uuidInput.addEventListener('input', ()=> { saveSettings(); });
+
+// initialize
+loadSettings();
+updateFromSource();
+
+// periodic refresh
+setInterval(()=>{
+  if (sourceSelect.value === 'outdoor') fetchOutdoorWeather(locationSelect.value);
+  else updateFromSource();
+}, 5 * 60 * 1000);
+
+</script>
+
+</body>
+</html>
