@@ -6,27 +6,36 @@
 <title>Big Time Dashboard</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { height:100%; width:100%; background:#000; color:#fff;
+  html, body { 
+    height:100%; width:100%; background:#000; color:#fff;
     font-family:-apple-system, BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    overflow:hidden; }
+    overflow:hidden; 
+  }
   body { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; }
-  .container { text-align:center; margin-top:-8vh; width:100%; max-width:900px; }
-  .day, .date, .time { font-size:3.8rem; font-weight:600; margin-bottom:1vh; }
-  .weather-row { font-size:2.8rem; margin-bottom:1.8vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
-  .rain-row { font-size:1.6rem; margin-bottom:2.4vh; display:flex; justify-content:center; gap:1.2rem; }
-  .temp { color:#ff9500; font-weight:500; }
-  .hi { color:#ff6b35; font-weight:500; font-size: 1.8rem; margin-left: 10px; }
+  
+  .container { text-align:center; margin-top:-5vh; width:100%; max-width:900px; }
+  
+  .day { font-size:3.5rem; font-weight:600; margin-bottom:0.5vh; color: #eee; }
+  .weather-row { font-size:3.2rem; margin-bottom:1.5vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
+  .rain-row { font-size:1.6rem; margin-bottom:2vh; display:flex; justify-content:center; gap:1.5rem; }
+  .date { font-size:3.2rem; font-weight:400; color: #ccc; margin-bottom: 0.5vh; }
+  .time { font-size:4.5rem; font-weight:700; color: #fff; }
+
+  .temp { color:#ff9500; font-weight:600; }
+  .hi { color:#ff6b35; font-size: 1.8rem; margin-left: 8px; font-weight: 500; }
   .rain-label { color:#8ab4e0; }
   .rain-value { color:#7ec8ff; font-weight:500; }
-  .settings-btn { position:fixed; bottom:16px; right:16px; width:44px; height:44px; border:none; background:transparent; color:#777; font-size:1.6rem; cursor:pointer; }
-  .settings-panel { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; padding:20px; overflow-y:auto; z-index:100; }
-  .settings-panel.open { display:flex; justify-content:center; align-items:center; }
-  .settings-card { background:#1c1c1e; padding:24px; border-radius:18px; width:100%; max-width:380px; }
-  .setting-row { margin-bottom:16px; }
-  .setting-label { display:block; margin-bottom:6px; color:#ddd; }
-  select, input { width:100%; padding:12px; background:#2c2c2e; color:#fff; border:1px solid #444; border-radius:8px; font-size:1rem; }
-  .close-settings { width:100%; padding:12px; background:#34c759; border:none; border-radius:12px; color:#fff; font-size:1.1rem; margin-top:16px; cursor:pointer; }
-  .status { margin-top:12px; color:#999; text-align:center; font-size:0.9rem; }
+
+  /* Settings UI */
+  .settings-btn { position:fixed; bottom:20px; right:20px; width:44px; height:44px; border:none; background:transparent; color:#555; font-size:1.8rem; cursor:pointer; z-index: 10; }
+  .settings-panel { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:none; padding:20px; z-index:100; align-items:center; justify-content:center; }
+  .settings-panel.open { display:flex; }
+  .settings-card { background:#1c1c1e; padding:24px; border-radius:20px; width:100%; max-width:360px; border: 1px solid #333; }
+  .setting-row { margin-bottom:20px; }
+  .setting-label { display:block; margin-bottom:8px; color:#aaa; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+  select, input { width:100%; padding:12px; background:#2c2c2e; color:#fff; border:1px solid #444; border-radius:10px; font-size:1rem; outline: none; }
+  .close-settings { width:100%; padding:14px; background:#34c759; border:none; border-radius:12px; color:#fff; font-size:1.1rem; font-weight:600; cursor:pointer; margin-top:10px; }
+  .status { margin-top:15px; color:#ff3b30; text-align:center; font-size:0.85rem; min-height: 1.2em; }
 </style>
 </head>
 <body>
@@ -59,10 +68,12 @@
         <option value="wirelesstag">Wireless Tag</option>
       </select>
     </div>
+    
     <div class="setting-row" id="uuidRow" style="display:none;">
       <span class="setting-label">Tag UUID</span>
-      <input id="uuidInput" placeholder="Paste Tag UUID">
+      <input id="uuidInput" placeholder="Enter WirelessTag UUID">
     </div>
+
     <div class="setting-row" id="outdoorLocRow">
       <span class="setting-label">Outdoor Location</span>
       <select id="locationSelect">
@@ -72,15 +83,17 @@
         <option value="auto">Device Location</option>
       </select>
     </div>
+
     <button class="close-settings" id="closeSettings">Done</button>
     <div class="status" id="status"></div>
   </div>
 </div>
 
 <script>
-// Icon Mapping
+// Icon mapping for Open-Meteo
 const icons = {0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌦️",61:"🌧️",63:"🌧️",65:"🌧️",71:"🌨️",73:"🌨️",75:"🌨️",80:"🌦️",81:"🌧️",82:"🌧️",95:"⛈️",96:"⛈️",99:"⛈️"};
 
+// 1. Clock Logic
 function updateClock(){
   const now = new Date();
   document.getElementById("day").textContent = now.toLocaleDateString("en-US",{weekday:"long"});
@@ -93,12 +106,14 @@ function updateClock(){
   document.getElementById("date").textContent = now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
 }
 
-function heatIndex(T, R) {
+// 2. Heat Index Calculation
+function calcHeatIndex(T, R) {
   if (T < 80) return Math.round(0.5 * (T + 61 + ((T - 68) * 1.2) + (R * 0.094)));
   const HI = -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 0.00683783 * T * T - 0.05481717 * R * R + 0.00122874 * T * T * R + 0.00085282 * T * R * R - 0.00000199 * T * T * R * R;
   return Math.round(HI);
 }
 
+// 3. Data Fetching Functions
 function fetchOutdoor() {
   const L = {huntertown:{lat:41.228,lon:-85.172}, fortwayne:{lat:41.079,lon:-85.139}, indianapolis:{lat:39.768,lon:-86.158}};
   const key = document.getElementById("locationSelect").value;
@@ -113,15 +128,13 @@ function fetchOutdoor() {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=precipitation_sum&temperature_unit=fahrenheit&timezone=auto&past_days=1`;
     fetch(url).then(r => r.json()).then(d => {
       const t = Math.round(d.current.temperature_2m);
-      const rh = d.current.relative_humidity_2m;
       document.getElementById("temp").textContent = t + "°F";
       document.getElementById("weatherIcon").textContent = icons[d.current.weather_code] || "☀️";
-      document.getElementById("heatIndex").textContent = "Feels " + heatIndex(t, rh) + "°";
-      // index 0 is yesterday because of past_days=1
+      document.getElementById("heatIndex").textContent = "Feels " + calcHeatIndex(t, d.current.relative_humidity_2m) + "°";
       document.getElementById("rainYesterday").textContent = d.daily.precipitation_sum[0] + "\"";
       document.getElementById("rainToday").textContent = d.daily.precipitation_sum[1] + "\"";
       document.getElementById("status").textContent = "";
-    }).catch(() => { document.getElementById("status").textContent = "Outdoor data error"; });
+    }).catch(() => { document.getElementById("status").textContent = "Outdoor service error"; });
   }
 }
 
@@ -133,23 +146,23 @@ function fetchPWS() {
     document.getElementById("weatherIcon").textContent = "🌡️";
     document.getElementById("heatIndex").textContent = "Real Feel " + Math.round(obs.imperial.heatIndex) + "°";
     document.getElementById("rainToday").textContent = obs.imperial.precipTotal + "\"";
-    document.getElementById("rainYesterday").textContent = obs.imperial.precipRate + "\""; // Note: PWS API varies on daily totals
+    document.getElementById("rainYesterday").textContent = obs.imperial.precipRate + "\"";
     document.getElementById("status").textContent = "";
-  }).catch(() => { document.getElementById("status").textContent = "PWS unavailable"; });
+  }).catch(() => { document.getElementById("status").textContent = "PWS offline or API error"; });
 }
 
 function fetchTag() {
   const uuid = document.getElementById("uuidInput").value;
-  if (!uuid) { document.getElementById("status").textContent = "No UUID set"; return; }
+  if (!uuid) { document.getElementById("status").textContent = "Enter UUID in settings"; return; }
   fetch("https://my.wirelesstag.net/ethLogs.asmx/GetTagByUUID?uuid=" + uuid).then(r => r.json()).then(d => {
     const t = Math.round(d.temperature);
     document.getElementById("temp").textContent = t + "°F";
     document.getElementById("weatherIcon").textContent = "🌡️";
-    document.getElementById("heatIndex").textContent = "Real Feel " + heatIndex(t, d.humidity) + "°";
+    document.getElementById("heatIndex").textContent = "Real Feel " + calcHeatIndex(t, d.humidity) + "°";
     document.getElementById("rainToday").textContent = d.rainToday + "\"";
     document.getElementById("rainYesterday").textContent = d.rainYesterday + "\"";
     document.getElementById("status").textContent = "";
-  }).catch(() => { document.getElementById("status").textContent = "Tag unavailable"; });
+  }).catch(() => { document.getElementById("status").textContent = "Wireless Tag error"; });
 }
 
 function fetchTemp() {
@@ -159,11 +172,20 @@ function fetchTemp() {
   else fetchOutdoor();
 }
 
-// Settings Logic
-document.getElementById("settingsBtn").onclick = () => document.getElementById("settingsPanel").classList.add("open");
+// 4. Settings Management
+function toggleInputRows() {
+  const src = document.getElementById("sourceSelect").value;
+  document.getElementById("uuidRow").style.display = (src === "wirelesstag") ? "block" : "none";
+  document.getElementById("outdoorLocRow").style.display = (src === "outdoor") ? "block" : "none";
+}
+
+document.getElementById("settingsBtn").onclick = () => {
+  document.getElementById("settingsPanel").classList.add("open");
+};
+
 document.getElementById("closeSettings").onclick = () => {
-  document.getElementById("settingsPanel").classList.remove("open");
   saveSettings();
+  document.getElementById("settingsPanel").classList.remove("open");
   fetchTemp();
 };
 
@@ -181,19 +203,9 @@ function loadSettings() {
   document.getElementById("sourceSelect").value = s;
   document.getElementById("uuidInput").value = u;
   document.getElementById("locationSelect").value = l;
-
-  document.getElementById("uuidRow").style.display = (s === "wirelesstag") ? "block" : "none";
-  document.getElementById("outdoorLocRow").style.display = (s === "outdoor") ? "block" : "none";
+  
+  toggleInputRows();
 }
 
-document.getElementById("sourceSelect").onchange = loadSettings;
-
-// Init
-loadSettings();
-updateClock();
-setInterval(updateClock, 1000);
-fetchTemp();
-setInterval(fetchTemp, 60000);
-</script>
-</body>
-</html>
+// Update UI rows when dropdown changes (without saving yet)
+do
