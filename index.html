@@ -11,7 +11,7 @@
   .container { text-align:center; margin-top:-5vh; width:100%; max-width:900px; }
   .day { font-size:3.5rem; font-weight:600; margin-bottom:0.5vh; color: #eee; }
   .weather-row { font-size:3.2rem; margin-bottom:1.5vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
-  .wind-row { font-size:2rem; margin-bottom:1.5vh; color:#aaa; }
+  .wind-row { font-size:2rem; margin-bottom:1.5vh; color:#aaa; display:flex; justify-content:center; gap:2rem; }
   .rain-row { font-size:1.6rem; margin-bottom:2vh; display:flex; justify-content:center; gap:1.5rem; }
   .date { font-size:3.2rem; font-weight:400; color: #ccc; margin-bottom: 0.5vh; }
   .time { font-size:4.5rem; font-weight:700; color: #fff; }
@@ -33,7 +33,7 @@
   @media (min-width: 768px) and (min-height: 600px) {
     .day { font-size:5rem; }
     .weather-row { font-size:4.5rem; gap:1rem; }
-    .wind-row { font-size:2.8rem; }
+    .wind-row { font-size:2.8rem; gap:3rem; }
     .rain-row { font-size:2.2rem; gap:2rem; }
     .date { font-size:4.5rem; }
     .time { font-size:6rem; }
@@ -51,7 +51,10 @@
     <span class="temp" id="temp">—°F</span>
     <span class="hi" id="heatIndex"></span>
   </div>
-  <div class="wind-row" id="windRow">Wind: —</div>
+  <div class="wind-row">
+    <span id="windDisplay">Wind: —</span>
+    <span id="gustDisplay">Gust: —</span>
+  </div>
   <div class="rain-row">
     <span><span class="rain-label">Today</span> <span class="rain-value" id="rainToday">—</span></span>
     <span><span class="rain-label">Yesterday</span> <span class="rain-value" id="rainYesterday">—</span></span>
@@ -169,7 +172,7 @@ async function fetchOutdoorWeather(key){
     const yesterday = yesterdayDate.toISOString().slice(0,10);
 
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}`+
-                `&current_weather=true&hourly=relativehumidity_2m,temperature_2m&daily=precipitation_sum&start_date=${yesterday}&end_date=${today}&timezone=auto`;
+                `&current_weather=true&hourly=relativehumidity_2m,temperature_2m,windspeed_10m&daily=precipitation_sum,windspeed_10m_max&start_date=${yesterday}&end_date=${today}&timezone=auto`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
@@ -211,6 +214,18 @@ async function fetchOutdoorWeather(key){
       }
     }
 
+    // Get max wind gust for today
+    let gustToday = null;
+    if (data.daily && data.daily.time && data.daily.windspeed_10m_max){
+      for (let i=0;i<data.daily.time.length;i++){
+        const d = data.daily.time[i];
+        if (d === today) {
+          const gustKmh = data.daily.windspeed_10m_max[i];
+          gustToday = gustKmh == null ? null : Math.round(gustKmh * 0.621371);
+        }
+      }
+    }
+
     // update DOM
     if (tempF != null) document.getElementById('temp').textContent = tempF + '°F';
     else document.getElementById('temp').textContent = '—°F';
@@ -218,8 +233,11 @@ async function fetchOutdoorWeather(key){
     document.getElementById('rainToday').textContent = rainToday;
     document.getElementById('rainYesterday').textContent = rainYesterday;
 
-    if (windMph != null) document.getElementById('windRow').textContent = 'Wind: ' + windMph + ' mph';
-    else document.getElementById('windRow').textContent = 'Wind: —';
+    if (windMph != null) document.getElementById('windDisplay').textContent = 'Wind: ' + windMph + ' mph';
+    else document.getElementById('windDisplay').textContent = 'Wind: —';
+
+    if (gustToday != null) document.getElementById('gustDisplay').textContent = 'Gust: ' + gustToday + ' mph';
+    else document.getElementById('gustDisplay').textContent = 'Gust: —';
 
     if (tempF != null && humidity != null){
       const hi = heatIndex(tempF, humidity);
@@ -254,12 +272,16 @@ function fetchPWSStation(){
     const tempF = obs.imperial && obs.imperial.temp != null ? Math.round(obs.imperial.temp) : null;
     const hi = obs.imperial && obs.imperial.heatIndex != null ? Math.round(obs.imperial.heatIndex) : null;
     const windSpeed = obs.imperial && obs.imperial.windSpeed != null ? Math.round(obs.imperial.windSpeed) : null;
+    const windGust = obs.imperial && obs.imperial.windGust != null ? Math.round(obs.imperial.windGust) : null;
 
     document.getElementById('temp').textContent = tempF != null ? tempF + '°F' : '—°F';
     document.getElementById('heatIndex').textContent = hi != null ? 'Feels Like ' + hi + '°' : '';
     
-    if (windSpeed != null) document.getElementById('windRow').textContent = 'Wind: ' + windSpeed + ' mph';
-    else document.getElementById('windRow').textContent = 'Wind: —';
+    if (windSpeed != null) document.getElementById('windDisplay').textContent = 'Wind: ' + windSpeed + ' mph';
+    else document.getElementById('windDisplay').textContent = 'Wind: —';
+
+    if (windGust != null) document.getElementById('gustDisplay').textContent = 'Gust: ' + windGust + ' mph';
+    else document.getElementById('gustDisplay').textContent = 'Gust: —';
 
     const precipToday = obs.imperial && obs.imperial.precipTotal != null ? obs.imperial.precipTotal + ' In' : '—';
     const precipRate = obs.imperial && obs.imperial.precipRate != null ? obs.imperial.precipRate + ' In' : '—';
