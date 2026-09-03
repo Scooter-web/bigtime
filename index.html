@@ -76,7 +76,6 @@
     <div class="status" id="status"></div>
   </div>
 </div>
-
 <script>
 // Clock
 function updateClock(){
@@ -180,6 +179,7 @@ function loadSettings(){
 document.getElementById("sourceSelect").onchange=function(){
   loadSettings();
 };
+console.log("Saved source:", localStorage.getItem("src"));
 
 // ================= FETCH DISPATCH =================
 function fetchTemp(){
