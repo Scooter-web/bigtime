@@ -208,11 +208,39 @@ async function fetchOutdoorWeather(key){
   }
 }
 
-// PWS placeholder
+// PWS (client-side) using provided API key (embedding key in client is public; consider a server-side proxy)
 function fetchPWSStation(){
-  // Implementing PWS requires an API and key (e.g., Weather Underground / Weather.com PWS endpoints).
-  // This is a placeholder: show user-facing guidance and fall back to outdoor.
-  document.getElementById('status').textContent = 'PWS selected: station support requires an API key. Provide endpoint/key to enable.';
+  const apiKey = '36cdfa6e59d844088dfa6e59d8640844';
+  const stationId = 'KINHUNTE19';
+  const url = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
+
+  document.getElementById('status').textContent = 'Fetching PWS...';
+  fetch(url).then(res => {
+    if (!res.ok) throw new Error('PWS fetch failed: ' + res.status);
+    return res.json();
+  }).then(d => {
+    const obs = (d && d.observations && d.observations[0]) || null;
+    if (!obs) throw new Error('No PWS observations returned');
+
+    const tempF = obs.imperial && obs.imperial.temp != null ? Math.round(obs.imperial.temp) : null;
+    // Weather.com may provide humidity as obs.humidty or obs.humidity; try common fields
+    const humidity = obs.humidity != null ? obs.humidity : (obs.imperial && obs.imperial.rh != null ? obs.imperial.rh : null);
+    const hi = (tempF != null && humidity != null) ? heatIndex(tempF, humidity) : null;
+
+    document.getElementById('temp').textContent = tempF != null ? tempF + '°F' : '—°F';
+    document.getElementById('weatherIcon').textContent = '🌡️';
+    document.getElementById('heatIndex').textContent = hi != null ? ' · HI ' + hi + '°' : '';
+
+    const precipToday = obs.imperial && obs.imperial.precipTotal != null ? obs.imperial.precipTotal + ' in' : '—';
+    const precipRate = obs.imperial && obs.imperial.precipRate != null ? obs.imperial.precipRate + ' in/hr' : '—';
+    document.getElementById('rainToday').textContent = precipToday;
+    document.getElementById('rainYesterday').textContent = precipRate;
+
+    document.getElementById('status').textContent = 'PWS updated: ' + new Date().toLocaleTimeString();
+  }).catch(err => {
+    console.error(err);
+    document.getElementById('status').textContent = 'PWS error: ' + (err.message || err) + ' (CORS or network error possible)';
+  });
 }
 
 // WirelessTag placeholder
