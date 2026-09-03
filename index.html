@@ -221,7 +221,7 @@ async function fetchOutdoorWeather(key){
 
     if (tempF != null && humidity != null){
       const hi = heatIndex(tempF, humidity);
-      if (hi != null) document.getElementById('heatIndex').textContent = 'Real Feel ' + hi + '°';
+      if (hi != null) document.getElementById('heatIndex').textContent = 'Feels Like ' + hi + '°';
       else document.getElementById('heatIndex').textContent = '';
     } else {
       document.getElementById('heatIndex').textContent = '';
@@ -253,7 +253,7 @@ function fetchPWSStation(){
     const hi = obs.imperial && obs.imperial.heatIndex != null ? Math.round(obs.imperial.heatIndex) : null;
 
     document.getElementById('temp').textContent = tempF != null ? tempF + '°F' : '—°F';
-    document.getElementById('heatIndex').textContent = hi != null ? 'Real Feel ' + hi + '°' : '';
+    document.getElementById('heatIndex').textContent = hi != null ? 'Feels Like ' + hi + '°' : '';
 
     const precipToday = obs.imperial && obs.imperial.precipTotal != null ? obs.imperial.precipTotal + ' In' : '—';
     const precipRate = obs.imperial && obs.imperial.precipRate != null ? obs.imperial.precipRate + ' In' : '—';
