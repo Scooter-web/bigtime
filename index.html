@@ -127,3 +127,59 @@ function fetchOutdoor(){
 }
 
 // ================= SETTINGS
+document.getElementById("settingsBtn").onclick=function(){
+  document.getElementById("settingsPanel").classList.add("open");
+};
+document.getElementById("closeSettings").onclick=function(){
+  document.getElementById("settingsPanel").classList.remove("open");
+  saveSettings();
+  fetchTemp();
+};
+
+function saveSettings(){
+  localStorage.setItem("src", document.getElementById("sourceSelect").value);
+  localStorage.setItem("uuid", document.getElementById("uuidInput").value);
+  localStorage.setItem("loc", document.getElementById("locationSelect").value);
+}
+
+function loadSettings(){
+  var s=localStorage.getItem("src");
+  var u=localStorage.getItem("uuid");
+  var l=localStorage.getItem("loc");
+  if (s) document.getElementById("sourceSelect").value=s;
+  if (u) document.getElementById("uuidInput").value=u;
+  if (l) document.getElementById("locationSelect").value=l;
+
+  document.getElementById("uuidRow").style.display =
+    (document.getElementById("sourceSelect").value==="wirelesstag")?"block":"none";
+  document.getElementById("outdoorLocRow").style.display =
+    (document.getElementById("sourceSelect").value==="outdoor")?"block":"none";
+}
+
+document.getElementById("sourceSelect").onchange=function(){
+  loadSettings();
+};
+
+// ================= FETCH DISPATCH =================
+function fetchTemp(){
+  var src=document.getElementById("sourceSelect").value;
+  if (src==="pws") fetchPWS();
+  else if (src==="wirelesstag") fetchTag();
+  else fetchOutdoor();
+}
+
+// ================= INIT =================
+loadSettings();
+updateClock();
+setInterval(updateClock,1000);
+fetchTemp();
+setInterval(fetchTemp,60000);
+
+// ================= SCREEN-AWAKE NUDGE =================
+setInterval(function(){
+  document.body.style.opacity="1";
+},30000);
+</script>
+</body>
+</html>
+
