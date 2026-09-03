@@ -113,3 +113,88 @@ function fetchOutdoor(){
       var t=Math.round(d.current.temperature_2m); var rh=d.current.relative_humidity_2m; var code=d.current.weather_code;
       document.getElementById("temp").textContent=t+"°F";
       document.getElementById("weatherIcon").
+  document.getElementById("rainToday").textContent=d.daily.precipitation_sum[0]+"\"";
+      document.getElementById("rainYesterday").textContent=d.daily.precipitation_sum[1]+"\"";
+    }).catch(()=>{document.getElementById("status").textContent="Outdoor weather unavailable";});
+  }
+}
+
+// Weather.com PWS
+function fetchPWS(){
+  var url="https://api.weather.com/v2/pws/observations/current?stationId=KINHUNTE19&format=json&units=e&apiKey=36cdfa6e59d844088dfa6e59d8640844";
+  fetch(url).then(r=>r.json()).then(function(d){
+    var obs=d.observations[0];
+    document.getElementById("temp").textContent=Math.round(obs.imperial.temp)+"°F";
+    document.getElementById("weatherIcon").textContent="🌡️";
+    document.getElementById("heatIndex").textContent="Real Feel "+Math.round(obs.imperial.heatIndex)+"°";
+    document.getElementById("rainToday").textContent=obs.imperial.precipTotal+"\"";
+    document.getElementById("rainYesterday").textContent=obs.imperial.precipRate+"\"";
+  }).catch(()=>{document.getElementById("status").textContent="PWS data unavailable";});
+}
+
+// WirelessTag
+function fetchTag(){
+  var uuid=document.getElementById("uuidInput").value;
+  if(!uuid){document.getElementById("status").textContent="No UUID set"; return;}
+  var url="https://my.wirelesstag.net/ethLogs.asmx/GetTagByUUID?uuid="+uuid;
+  fetch(url).then(r=>r.json()).then(function(d){
+    var t=Math.round(d.temperature);
+    document.getElementById("temp").textContent=t+"°F";
+    document.getElementById("weatherIcon").textContent="🌡️";
+    document.getElementById("heatIndex").textContent="Real Feel "+heatIndex(t,d.humidity)+"°";
+    document.getElementById("rainToday").textContent=d.rainToday+"\"";
+    document.getElementById("rainYesterday").textContent=d.rainYesterday+"\"";
+  }).catch(()=>{document.getElementById("status").textContent="WirelessTag data unavailable";});
+}
+// ================= SETTINGS =================
+document.getElementById("settingsBtn").onclick=function(){
+  document.getElementById("settingsPanel").classList.add("open");
+};
+document.getElementById("closeSettings").onclick=function(){
+  document.getElementById("settingsPanel").classList.remove("open");
+  saveSettings();
+  fetchTemp();
+};
+
+function saveSettings(){
+  localStorage.setItem("src", document.getElementById("sourceSelect").value);
+  localStorage.setItem("uuid", document.getElementById("uuidInput").value);
+  localStorage.setItem("loc", document.getElementById("locationSelect").value);
+}
+
+function loadSettings(){
+  var s=localStorage.getItem("src");
+  var u=localStorage.getItem("uuid");
+  var l=localStorage.getItem("loc");
+  if (s) document.getElementById("sourceSelect").value=s;
+  if (u) document.getElementById("uuidInput").value=u;
+  if (l) document.getElementById("locationSelect").value=l;
+
+  document.getElementById("uuidRow").style.display =
+    (document.getElementById("sourceSelect").value==="wirelesstag")?"block":"none";
+  document.getElementById("outdoorLocRow").style.display =
+    (document.getElementById("sourceSelect").value==="outdoor")?"block":"none";
+}
+
+document.getElementById("sourceSelect").onchange=function(){
+  loadSettings();
+};
+
+// ================= FETCH DISPATCH =================
+function fetchTemp(){
+  var src=document.getElementById("sourceSelect").value;
+  if (src==="pws") fetchPWS();
+  else if (src==="wirelesstag") fetchTag();
+  else fetchOutdoor();
+}
+
+// ================= INIT =================
+loadSettings();
+updateClock();
+setInterval(updateClock,1000);
+fetchTemp();
+setInterval(fetchTemp,60000);
+</script>
+</body>
+</html>
+
