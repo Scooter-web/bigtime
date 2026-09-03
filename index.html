@@ -11,6 +11,7 @@
   .container { text-align:center; margin-top:-5vh; width:100%; max-width:900px; }
   .day { font-size:3.5rem; font-weight:600; margin-bottom:0.5vh; color: #eee; }
   .weather-row { font-size:3.2rem; margin-bottom:1.5vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
+  .wind-row { font-size:2rem; margin-bottom:1.5vh; color:#aaa; }
   .rain-row { font-size:1.6rem; margin-bottom:2vh; display:flex; justify-content:center; gap:1.5rem; }
   .date { font-size:3.2rem; font-weight:400; color: #ccc; margin-bottom: 0.5vh; }
   .time { font-size:4.5rem; font-weight:700; color: #fff; }
@@ -32,6 +33,7 @@
   @media (min-width: 768px) and (min-height: 600px) {
     .day { font-size:5rem; }
     .weather-row { font-size:4.5rem; gap:1rem; }
+    .wind-row { font-size:2.8rem; }
     .rain-row { font-size:2.2rem; gap:2rem; }
     .date { font-size:4.5rem; }
     .time { font-size:6rem; }
@@ -49,6 +51,7 @@
     <span class="temp" id="temp">—°F</span>
     <span class="hi" id="heatIndex"></span>
   </div>
+  <div class="wind-row" id="windRow">Wind: —</div>
   <div class="rain-row">
     <span><span class="rain-label">Today</span> <span class="rain-value" id="rainToday">—</span></span>
     <span><span class="rain-label">Yesterday</span> <span class="rain-value" id="rainYesterday">—</span></span>
@@ -66,13 +69,7 @@
       <select id="sourceSelect">
         <option value="pws">PWS (KINHUNTE19)</option>
         <option value="outdoor">Outdoor (Open-Meteo)</option>
-        <option value="wirelesstag">Wireless Tag</option>
       </select>
-    </div>
-    
-    <div class="setting-row" id="uuidRow" style="display:none;">
-      <span class="setting-label">Tag UUID</span>
-      <input id="uuidInput" placeholder="Enter WirelessTag UUID">
     </div>
 
     <div class="setting-row" id="outdoorLocRow">
@@ -142,7 +139,7 @@ async function fetchWeatherCondition(lat, lon){
     if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
     const data = await res.json();
     const current = data.current_weather || {};
-    return current.weathercode;
+    return current;
   } catch (err){
     console.error('Weather condition fetch error:', err);
     return null;
@@ -181,7 +178,9 @@ async function fetchOutdoorWeather(key){
     const current = data.current_weather || {};
     const tempC = current.temperature; // °C
     const weathercode = current.weathercode;
+    const windSpeed = current.windspeed; // km/h, convert to mph
     const tempF = tempC == null ? null : Math.round((tempC * 9/5) + 32);
+    const windMph = windSpeed == null ? null : Math.round(windSpeed * 0.621371);
 
     // humidity: find current hour in hourly times
     let humidity = null;
@@ -219,6 +218,9 @@ async function fetchOutdoorWeather(key){
     document.getElementById('rainToday').textContent = rainToday;
     document.getElementById('rainYesterday').textContent = rainYesterday;
 
+    if (windMph != null) document.getElementById('windRow').textContent = 'Wind: ' + windMph + ' mph';
+    else document.getElementById('windRow').textContent = 'Wind: —';
+
     if (tempF != null && humidity != null){
       const hi = heatIndex(tempF, humidity);
       if (hi != null) document.getElementById('heatIndex').textContent = 'Feels Like ' + hi + '°';
@@ -251,9 +253,13 @@ function fetchPWSStation(){
 
     const tempF = obs.imperial && obs.imperial.temp != null ? Math.round(obs.imperial.temp) : null;
     const hi = obs.imperial && obs.imperial.heatIndex != null ? Math.round(obs.imperial.heatIndex) : null;
+    const windSpeed = obs.imperial && obs.imperial.windSpeed != null ? Math.round(obs.imperial.windSpeed) : null;
 
     document.getElementById('temp').textContent = tempF != null ? tempF + '°F' : '—°F';
     document.getElementById('heatIndex').textContent = hi != null ? 'Feels Like ' + hi + '°' : '';
+    
+    if (windSpeed != null) document.getElementById('windRow').textContent = 'Wind: ' + windSpeed + ' mph';
+    else document.getElementById('windRow').textContent = 'Wind: —';
 
     const precipToday = obs.imperial && obs.imperial.precipTotal != null ? obs.imperial.precipTotal + ' In' : '—';
     const precipRate = obs.imperial && obs.imperial.precipRate != null ? obs.imperial.precipRate + ' In' : '—';
@@ -261,9 +267,9 @@ function fetchPWSStation(){
     document.getElementById('rainYesterday').textContent = precipRate;
 
     // Fetch weather condition from Open-Meteo for Huntertown
-    fetchWeatherCondition(LOCS.huntertown.lat, LOCS.huntertown.lon).then(weathercode => {
-      if (weathercode != null) {
-        document.getElementById('weatherIcon').textContent = weatherEmoji(weathercode);
+    fetchWeatherCondition(LOCS.huntertown.lat, LOCS.huntertown.lon).then(weatherData => {
+      if (weatherData && weatherData.weathercode != null) {
+        document.getElementById('weatherIcon').textContent = weatherEmoji(weatherData.weathercode);
       } else {
         document.getElementById('weatherIcon').textContent = '☀️';
       }
@@ -276,24 +282,12 @@ function fetchPWSStation(){
   });
 }
 
-// WirelessTag placeholder
-function fetchWirelessTag(uuid){
-  if (!uuid){
-    document.getElementById('status').textContent = 'WirelessTag selected: enter Tag UUID in settings.';
-    return;
-  }
-  // WirelessTag generally requires authenticated API access and may need a server-side proxy for CORS.
-  document.getElementById('status').textContent = 'WirelessTag selected: WirelessTag API requires authentication and a proxy; configure backend to fetch data.';
-}
-
 // Update UI based on selected source
 function updateFromSource(){
   const src = document.getElementById('sourceSelect').value;
   const loc = document.getElementById('locationSelect').value;
-  const uuid = document.getElementById('uuidInput').value.trim();
   if (src === 'outdoor') fetchOutdoorWeather(loc);
   else if (src === 'pws') fetchPWSStation();
-  else if (src === 'wirelesstag') fetchWirelessTag(uuid);
 }
 
 // Settings and persistence
@@ -302,8 +296,6 @@ const locationSelect = document.getElementById('locationSelect');
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsPanel = document.getElementById('settingsPanel');
 const closeSettings = document.getElementById('closeSettings');
-const uuidRow = document.getElementById('uuidRow');
-const uuidInput = document.getElementById('uuidInput');
 
 function loadSettings(){
   try{
@@ -312,29 +304,21 @@ function loadSettings(){
       const parsed = JSON.parse(s);
       if (parsed.source) sourceSelect.value = parsed.source;
       if (parsed.location) locationSelect.value = parsed.location;
-      if (parsed.uuid) uuidInput.value = parsed.uuid;
     }
   }catch(e){console.warn('Failed to load settings', e);}  
-  toggleUUIDRow();
 }
 
 function saveSettings(){
-  const obj = { source: sourceSelect.value, location: locationSelect.value, uuid: uuidInput.value.trim() };
+  const obj = { source: sourceSelect.value, location: locationSelect.value };
   try{ localStorage.setItem('bigtime.settings', JSON.stringify(obj)); }
   catch(e){ console.warn('Failed to save settings', e); }
-}
-
-function toggleUUIDRow(){
-  if (sourceSelect.value === 'wirelesstag') uuidRow.style.display = 'block';
-  else uuidRow.style.display = 'none';
 }
 
 // event listeners
 settingsBtn.addEventListener('click', ()=> settingsPanel.classList.add('open'));
 closeSettings.addEventListener('click', ()=> { settingsPanel.classList.remove('open'); saveSettings(); updateFromSource(); });
-sourceSelect.addEventListener('change', ()=> { toggleUUIDRow(); saveSettings(); updateFromSource(); });
+sourceSelect.addEventListener('change', ()=> { saveSettings(); updateFromSource(); });
 locationSelect.addEventListener('change', ()=> { saveSettings(); if (sourceSelect.value === 'outdoor') fetchOutdoorWeather(locationSelect.value); });
-uuidInput.addEventListener('input', ()=> { saveSettings(); });
 
 // initialize
 loadSettings();
