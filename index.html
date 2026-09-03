@@ -127,8 +127,9 @@ function fetchPWS(){
     document.getElementById("temp").textContent=Math.round(obs.imperial.temp)+"°F";
     document.getElementById("weatherIcon").textContent="🌡️";
     document.getElementById("heatIndex").textContent="Real Feel "+Math.round(obs.imperial.heatIndex)+"°";
-    document.getElementById("rainToday").textContent=obs.imperial.precipTotal+"\"";
-    document.getElementById("rainYesterday").textContent=obs.imperial.precipRate+"\"";
+   document.getElementById("rainToday").textContent = d.daily.precipitation_sum[0] + "\"";
+   document.getElementById("rainYesterday").textContent = 
+  (d.daily.precipitation_sum.length > 1 ? d.daily.precipitation_sum[1] + "\"" : "—");
   }).catch(()=>{document.getElementById("status").textContent="PWS data unavailable";});
 }
 
