@@ -125,6 +125,34 @@ function fetchOutdoor(){
     }).catch(()=>{document.getElementById("status").textContent="Outdoor weather unavailable";});
   }
 }
+      // Weather.com PWS
+function fetchPWS(){
+  var url="https://api.weather.com/v2/pws/observations/current?stationId=KINHUNTE19&format=json&units=e&apiKey=36cdfa6e59d844088dfa6e59d8640844";
+  fetch(url).then(r=>r.json()).then(function(d){
+    var obs=d.observations[0];
+    document.getElementById("temp").textContent=Math.round(obs.imperial.temp)+"°F";
+    document.getElementById("weatherIcon").textContent="🌡️";
+    document.getElementById("heatIndex").textContent="Real Feel "+Math.round(obs.imperial.heatIndex)+"°";
+    document.getElementById("rainToday").textContent=obs.imperial.precipTotal+"\"";
+    document.getElementById("rainYesterday").textContent=obs.imperial.precipRate+"\"";
+  }).catch(()=>{document.getElementById("status").textContent="PWS data unavailable";});
+}
+
+// WirelessTag
+function fetchTag(){
+  var uuid=document.getElementById("uuidInput").value;
+  if(!uuid){document.getElementById("status").textContent="No UUID set"; return;}
+  var url="https://my.wirelesstag.net/ethLogs.asmx/GetTagByUUID?uuid="+uuid;
+  fetch(url).then(r=>r.json()).then(function(d){
+    var t=Math.round(d.temperature);
+    document.getElementById("temp").textContent=t+"°F";
+    document.getElementById("weatherIcon").textContent="🌡️";
+    document.getElementById("heatIndex").textContent="Real Feel "+heatIndex(t,d.humidity)+"°";
+    document.getElementById("rainToday").textContent=d.rainToday+"\"";
+    document.getElementById("rainYesterday").textContent=d.rainYesterday+"\"";
+  }).catch(()=>{document.getElementById("status").textContent="WirelessTag data unavailable";});
+}
+
 
 // ================= SETTINGS
 document.getElementById("settingsBtn").onclick=function(){
