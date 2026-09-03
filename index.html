@@ -163,18 +163,27 @@ function saveSettings(){
 }
 
 function loadSettings(){
-  var s=localStorage.getItem("src");
-  var u=localStorage.getItem("uuid");
-  var l=localStorage.getItem("loc");
-  if (s) document.getElementById("sourceSelect").value=s;
-  if (u) document.getElementById("uuidInput").value=u;
-  if (l) document.getElementById("locationSelect").value=l;
+  var s = localStorage.getItem("src");
+  var u = localStorage.getItem("uuid");
+  var l = localStorage.getItem("loc");
 
+  if (s) {
+    document.getElementById("sourceSelect").value = s;
+  }
+  if (u) {
+    document.getElementById("uuidInput").value = u;
+  }
+  if (l) {
+    document.getElementById("locationSelect").value = l;
+  }
+
+  // Show/hide rows based on source
   document.getElementById("uuidRow").style.display =
-    (document.getElementById("sourceSelect").value==="wirelesstag")?"block":"none";
+    (document.getElementById("sourceSelect").value === "wirelesstag") ? "block" : "none";
   document.getElementById("outdoorLocRow").style.display =
-    (document.getElementById("sourceSelect").value==="outdoor")?"block":"none";
+    (document.getElementById("sourceSelect").value === "outdoor") ? "block" : "none";
 }
+
 
 document.getElementById("sourceSelect").onchange=function(){
   loadSettings();
