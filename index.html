@@ -124,7 +124,22 @@ const LOCS = {
   indianapolis:{ lat: 39.7684, lon: -86.1581 }
 };
 
-// Fetch weather from Open-Meteo and update UI
+// Fetch weather condition from Open-Meteo
+async function fetchWeatherCondition(lat, lon){
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
+    const data = await res.json();
+    const current = data.current_weather || {};
+    return current.weathercode;
+  } catch (err){
+    console.error('Weather condition fetch error:', err);
+    return null;
+  }
+}
+
+// Fetch weather from Open-Meteo and update UI (for Outdoor source)
 async function fetchOutdoorWeather(key){
   try {
     let coords;
@@ -210,6 +225,7 @@ async function fetchOutdoorWeather(key){
 }
 
 // PWS (client-side) using provided API key (embedding key in client is public; consider a server-side proxy)
+// Fetches temperature from PWS and weather condition from Open-Meteo (Huntertown location)
 function fetchPWSStation(){
   const apiKey = '36cdfa6e59d844088dfa6e59d8640844';
   const stationId = 'KINHUNTE19';
@@ -227,13 +243,21 @@ function fetchPWSStation(){
     const hi = obs.imperial && obs.imperial.heatIndex != null ? Math.round(obs.imperial.heatIndex) : null;
 
     document.getElementById('temp').textContent = tempF != null ? tempF + '°F' : '—°F';
-    document.getElementById('weatherIcon').textContent = '🌡️';
     document.getElementById('heatIndex').textContent = hi != null ? 'Real Feel ' + hi + '°' : '';
 
     const precipToday = obs.imperial && obs.imperial.precipTotal != null ? obs.imperial.precipTotal + ' In' : '—';
     const precipRate = obs.imperial && obs.imperial.precipRate != null ? obs.imperial.precipRate + ' In' : '—';
     document.getElementById('rainToday').textContent = precipToday;
     document.getElementById('rainYesterday').textContent = precipRate;
+
+    // Fetch weather condition from Open-Meteo for Huntertown
+    fetchWeatherCondition(LOCS.huntertown.lat, LOCS.huntertown.lon).then(weathercode => {
+      if (weathercode != null) {
+        document.getElementById('weatherIcon').textContent = weatherEmoji(weathercode);
+      } else {
+        document.getElementById('weatherIcon').textContent = '☀️';
+      }
+    });
 
     document.getElementById('status').textContent = 'PWS updated: ' + new Date().toLocaleTimeString();
   }).catch(err => {
