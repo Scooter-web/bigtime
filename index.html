@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,83 +37,4 @@
   .settings-card { background:#1c1c1e; padding:24px; border-radius:18px; width:100%; max-width:380px; }
   .setting-row { margin-bottom:16px; }
   .setting-label { display:block; margin-bottom:6px; color:#ddd; }
-  select, input { width:100%; padding:10px; background:#2c2c2e; color:#fff; border:1px solid #444; border-radius:8px; }
-  .close-settings { width:100%; padding:12px; background:#34c759; border:none; border-radius:12px; color:#fff; font-size:1.1rem; margin-top:16px; }
-  .status { margin-top:12px; color:#999; text-align:center; }
-</style>
-</head>
-
-<body>
-<div class="container">
-  <div class="day" id="day">—</div>
-  <div class="weather-row">
-    <span id="weatherIcon">☀️</span>
-    <span id="period">—</span>
-    <span class="temp" id="temp">—°F</span>
-    <span class="hi" id="heatIndex"></span>
-  </div>
-  <div class="rain-row">
-    <span><span class="rain-label">Today</span> <span class="rain-value" id="rainToday">—</span></span>
-    <span><span class="rain-label">Yesterday</span> <span class="rain-value" id="rainYesterday">—</span></span>
-  </div>
-  <div class="date" id="date">—</div>
-  <div class="time" id="time">—</div>
-</div>
-
-<button class="settings-btn" id="settingsBtn">⚙️</button>
-
-<div class="settings-panel" id="settingsPanel">
-  <div class="settings-card">
-    <div class="setting-row">
-      <span class="setting-label">Temperature Source</span>
-      <select id="sourceSelect">
-        <option value="pws">PWS KINHUNTE19</option>
-        <option value="outdoor">Outdoor (Open-Meteo)</option>
-        <option value="wirelesstag">Wireless Tag</option>
-      </select>
-    </div>
-    <div class="setting-row" id="uuidRow" style="display:none;">
-      <span class="setting-label">Tag UUID</span>
-      <input id="uuidInput" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-    </div>
-    <div class="setting-row" id="outdoorLocRow">
-      <span class="setting-label">Outdoor Location</span>
-      <select id="locationSelect">
-        <option value="huntertown">Huntertown, IN</option>
-        <option value="fortwayne">Fort Wayne, IN</option>
-        <option value="indianapolis">Indianapolis, IN</option>
-        <option value="auto">Device Location</option>
-      </select>
-    </div>
-    <button class="close-settings" id="closeSettings">Done</button>
-    <div class="status" id="status"></div>
-  </div>
-</div>
-
-<script>
-// Clock
-function updateClock() {
-  var now = new Date();
-  document.getElementById("day").textContent = now.toLocaleDateString("en-US",{weekday:"long"});
-  var h = now.getHours();
-  var period = (h<12?"Morning":h<17?"Afternoon":h<21?"Evening":"Night");
-  document.getElementById("period").textContent = period;
-  var hh = h%12 || 12;
-  var mm = String(now.getMinutes()).padStart(2,"0");
-  document.getElementById("time").textContent = hh+":"+mm+" "+(h>=12?"PM":"AM");
-  document.getElementById("date").textContent = now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
-}
-setInterval(updateClock,1000); updateClock();
-
-// Heat Index
-function heatIndex(T,R){ if(T<80)return Math.round(0.5*(T+61+((T-68)*1.2)+(R*0.094)));
-var HI=-42.379+2.04901523*T+10.14333127*R-0.22475541*T*R-0.00683783*T*T-0.05481717*R*R+0.00122874*T*T*R+0.00085282*T*R*R-0.00000199*T*T*R*R; return Math.round(HI); }
-
-// Weather icons
-var icons={0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌦️",61:"🌧️",63:"🌧️",65:"🌧️",71:"🌨️",73:"🌨️",75:"🌨️",80:"🌦️",81:"🌧️",82:"🌧️",95:"⛈️",96:"⛈️",99:"⛈️"};
-
-// Outdoor weather
-function fetchOutdoor(){
-  var L={huntertown:{lat:41.228,lon:-85.172},fortwayne:{lat:41.079,lon:-85.139},indianapolis:{lat:39.768,lon:-86.158}};
-  var key=document.getElementById("locationSelect").value; var lat,lon;
-  if(key==="auto
+  select, input { width:100%; padding:10px; background:#2c2c2e; color:#
