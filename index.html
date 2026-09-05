@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Big Time Dashboard</title>
-<style>
+Big Time Dashboard
+
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; width:100%; background:#000; color:#fff; font-family:-apple-system, BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif; overflow:hidden; }
   body { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; padding-top:max(16px, env(safe-area-inset-top)); padding-bottom:max(16px, env(safe-area-inset-bottom)); }
@@ -28,331 +23,295 @@
   select, input { width:100%; padding:12px; background:#2c2c2e; color:#fff; border:1px solid #444; border-radius:10px; font-size:1rem; outline: none; }
   .close-settings { width:100%; padding:14px; background:#34c759; border:none; border-radius:12px; color:#fff; font-size:1.1rem; font-weight:600; cursor:pointer; margin-top:10px; }
   .status { margin-top:15px; color:#ff3b30; text-align:center; font-size:0.85rem; min-height: 1.2em; }
-  
-  /* Tablet (landscape, wider than 768px) */
-  @media (min-width: 768px) and (min-height: 600px) {
-    .day { font-size:5rem; }
-    .weather-row { font-size:4.5rem; gap:1rem; }
-    .wind-row { font-size:2.8rem; gap:3rem; }
-    .rain-row { font-size:2.2rem; gap:2rem; }
-    .date { font-size:4.5rem; }
-    .time { font-size:6rem; }
-    .hi { font-size: 2.5rem; margin-left: 12px; }
-  }
+/* Tablet (landscape, wider than 768px) */
+@media (min-width: 768px) and (min-height: 600px) {
+.day { font-size:5rem; }
+.weather-row { font-size:4.5rem; gap:1rem; }
+.wind-row { font-size:2.8rem; gap:3rem; }
+.rain-row { font-size:2.2rem; gap:2rem; }
+.date { font-size:4.5rem; }
+.time { font-size:6rem; }
+.hi { font-size: 2.5rem; margin-left: 12px; }
+}
 </style>
-</head>
-<body>
 
-<div class="container">
-  <div class="day" id="day">—</div>
-  <div class="weather-row">
-    <span id="weatherIcon">☀️</span>
-    <span id="period">—</span>
-    <span class="temp" id="temp">—°F</span>
-    <span class="hi" id="heatIndex"></span>
-  </div>
-  <div class="wind-row">
-    <span id="windDisplay">Wind: —</span>
-    <span id="gustDisplay">Gust: —</span>
-  </div>
-  <div class="rain-row">
-    <span><span class="rain-label">Today</span> <span class="rain-value" id="rainToday">—</span></span>
-    <span><span class="rain-label">Yesterday</span> <span class="rain-value" id="rainYesterday">—</span></span>
-  </div>
-  <div class="date" id="date">—</div>
-  <div class="time" id="time">—</div>
-</div>
 
-<button class="settings-btn" id="settingsBtn">⚙️</button>
 
-<div class="settings-panel" id="settingsPanel">
-  <div class="settings-card">
-    <div class="setting-row">
-      <span class="setting-label">Temperature Source</span>
-      <select id="sourceSelect">
-        <option value="pws">PWS (KINHUNTE19)</option>
-        <option value="outdoor">Outdoor (Open-Meteo)</option>
-      </select>
-    </div>
+  —
+  
+    ☀️
+    —
+    —°F
+    
+  
+  
+    Wind: —
+    Gust: —
+  
+  
+    Today —
+    Yesterday —
+  
+  —
+  —
 
-    <div class="setting-row" id="outdoorLocRow">
-      <span class="setting-label">Outdoor Location</span>
-      <select id="locationSelect">
-        <option value="huntertown">Huntertown, IN</option>
-        <option value="fortwayne">Fort Wayne, IN</option>
-        <option value="indianapolis">Indianapolis, IN</option>
-        <option value="auto">Device Location</option>
-      </select>
-    </div>
+⚙️
 
-    <button class="close-settings" id="closeSettings">Done</button>
-    <div class="status" id="status"></div>
-  </div>
-</div>
-
-<script>
+  
+    
+      Temperature Source
+      
+        PWS (KINHUNTE19)
+        Outdoor (Open-Meteo)
+      
+    
+    
+      Outdoor Location
+      
+        Huntertown, IN
+        Fort Wayne, IN
+        Indianapolis, IN
+        Device Location
 // Clock
 function updateClock(){
-  const now = new Date();
-  document.getElementById('day').textContent = now.toLocaleDateString('en-US',{weekday:'long'});
-  const h = now.getHours();
-  const period = (h<12? 'Morning' : h<17? 'Afternoon' : h<21? 'Evening' : 'Night');
-  document.getElementById('period').textContent = period;
-  const hh = h % 12 || 12;
-  const mm = String(now.getMinutes()).padStart(2,'0');
-  document.getElementById('time').textContent = hh + ':' + mm + ' ' + (h>=12? 'PM' : 'AM');
-  document.getElementById('date').textContent = now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+const now = new Date();
+document.getElementById('day').textContent = now.toLocaleDateString('en-US',{weekday:'long'});
+const h = now.getHours();
+const period = (h<12? 'Morning' : h<17? 'Afternoon' : h<21? 'Evening' : 'Night');
+document.getElementById('period').textContent = period;
+const hh = h % 12 || 12;
+const mm = String(now.getMinutes()).padStart(2,'0');
+document.getElementById('time').textContent = hh + ':' + mm + ' ' + (h>=12? 'PM' : 'AM');
+document.getElementById('date').textContent = now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 }
 setInterval(updateClock,1000);
 updateClock();
-
 // Heat Index (T in °F, R in %)
 function heatIndex(T,R){
-  if (T == null || R == null) return null;
-  if (T < 80) return Math.round(0.5*(T+61+((T-68)*1.2)+(R*0.094)));
-  const HI = -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 6.83783e-3 * T * T - 5.481717e-2 * R * R + 1.22874e-3 * T * T * R + 8.5282e-4 * T * R * R - 1.99e-6 * T * T * R * R;
-  return Math.round(HI);
+if (T == null || R == null) return null;
+if (T < 80) return Math.round(0.5*(T+61+((T-68)*1.2)+(R*0.094)));
+const HI = -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 6.83783e-3 * T * T - 5.481717e-2 * R * R + 1.22874e-3 * T * T * R + 8.5282e-4 * T * R * R - 1.99e-6 * T * T * R * R;
+return Math.round(HI);
 }
-
 // Map open-meteo weathercode to emoji (basic)
 function weatherEmoji(code){
-  if (code === 0) return '☀️';
-  if (code === 1 || code === 2 || code === 3) return '⛅';
-  if ([45,48].includes(code)) return '🌫️';
-  if ([51,53,55,56,57].includes(code)) return '🌦️';
-  if ([61,63,65,66,67].includes(code)) return '🌧️';
-  if ([71,73,75,77,85,86].includes(code)) return '🌨️';
-  if ([80,81,82].includes(code)) return '🌧️';
-  if ([95,96,99].includes(code)) return '⛈️';
-  return '🌤️';
+if (code === 0) return '☀️';
+if (code === 1 || code === 2 || code === 3) return '⛅';
+if ([45,48].includes(code)) return '🌫️';
+if ([51,53,55,56,57].includes(code)) return '🌦️';
+if ([61,63,65,66,67].includes(code)) return '🌧️';
+if ([71,73,75,77,85,86].includes(code)) return '🌨️';
+if ([80,81,82].includes(code)) return '🌧️';
+if ([95,96,99].includes(code)) return '⛈️';
+return '🌤️';
 }
-
 // Coordinates for named locations (approx)
 const LOCS = {
-  huntertown: { lat: 40.9670, lon: -85.1655 },
-  fortwayne:  { lat: 41.0793, lon: -85.1394 },
-  indianapolis:{ lat: 39.7684, lon: -86.1581 }
+huntertown: { lat: 40.9670, lon: -85.1655 },
+fortwayne:  { lat: 41.0793, lon: -85.1394 },
+indianapolis:{ lat: 39.7684, lon: -86.1581 }
 };
-
 // Fetch weather condition from Open-Meteo
 async function fetchWeatherCondition(lat, lon){
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
-    const data = await res.json();
-    const current = data.current_weather || {};
-    return current;
-  } catch (err){
-    console.error('Weather condition fetch error:', err);
-    return null;
-  }
+try {
+const url = https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto;
+const res = await fetch(url);
+if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
+const data = await res.json();
+const current = data.current_weather || {};
+return current;
+} catch (err){
+console.error('Weather condition fetch error:', err);
+return null;
 }
-
+}
 // Fetch weather from Open-Meteo and update UI (for Outdoor source)
 async function fetchOutdoorWeather(key){
-  try {
-    let coords;
-    if (key === 'auto'){
-      coords = await new Promise((resolve) => {
-        if (!navigator.geolocation) return resolve(LOCS.huntertown);
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-          () => resolve(LOCS.huntertown),
-          { timeout: 5000 }
-        );
-      });
-    } else {
-      coords = LOCS[key] || LOCS.huntertown;
-    }
-
-    const now = new Date();
-    const today = now.toISOString().slice(0,10);
-    const yesterdayDate = new Date(now.getTime() - 24*60*60*1000);
-    const yesterday = yesterdayDate.toISOString().slice(0,10);
-
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}`+
-                `&current_weather=true&hourly=relativehumidity_2m,temperature_2m,windspeed_10m&daily=precipitation_sum,windspeed_10m_max&start_date=${yesterday}&end_date=${today}&timezone=auto`;
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
-    const data = await res.json();
-
-    const current = data.current_weather || {};
-    const tempC = current.temperature; // °C
-    const weathercode = current.weathercode;
-    const windSpeed = current.windspeed; // km/h, convert to mph
-    const tempF = tempC == null ? null : Math.round((tempC * 9/5) + 32);
-    const windMph = windSpeed == null ? null : Math.round(windSpeed * 0.621371);
-
-    // humidity: find current hour in hourly times
-    let humidity = null;
-    if (data.hourly && data.hourly.time && data.hourly.relativehumidity_2m){
-      const times = data.hourly.time;
-      const hums = data.hourly.relativehumidity_2m;
-      const nowHourISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours()).toISOString().slice(0,13);
-      let bestIdx = -1;
-      for (let i=0;i<times.length;i++){
-        if (times[i].slice(0,13) === nowHourISO){ bestIdx = i; break; }
-      }
-      if (bestIdx === -1) bestIdx = Math.max(0, times.length - 1);
-      humidity = hums[bestIdx];
-    }
-
-    // daily precipitation_sum - convert mm to inches
-    let rainToday = '—', rainYesterday = '—';
-    if (data.daily && data.daily.time && data.daily.precipitation_sum){
-      for (let i=0;i<data.daily.time.length;i++){
-        const d = data.daily.time[i];
-        const mmToInch = (mm) => (mm / 25.4).toFixed(2);
-        if (d === today) rainToday = mmToInch(data.daily.precipitation_sum[i]) + ' In';
-        if (d === yesterday) rainYesterday = mmToInch(data.daily.precipitation_sum[i]) + ' In';
-      }
-      if (rainToday === '—' && data.daily.precipitation_sum.length){
-        const last = data.daily.precipitation_sum[data.daily.precipitation_sum.length-1];
-        if (last != null) rainToday = (last / 25.4).toFixed(2) + ' In';
-      }
-    }
-
-    // Get max wind gust for today
-    let gustToday = null;
-    if (data.daily && data.daily.time && data.daily.windspeed_10m_max){
-      for (let i=0;i<data.daily.time.length;i++){
-        const d = data.daily.time[i];
-        if (d === today) {
-          const gustKmh = data.daily.windspeed_10m_max[i];
-          gustToday = gustKmh == null ? null : Math.round(gustKmh * 0.621371);
-        }
-      }
-    }
-
-    // update DOM
-    if (tempF != null) document.getElementById('temp').textContent = tempF + '°F';
-    else document.getElementById('temp').textContent = '—°F';
-    document.getElementById('weatherIcon').textContent = weatherEmoji(weathercode);
-    document.getElementById('rainToday').textContent = rainToday;
-    document.getElementById('rainYesterday').textContent = rainYesterday;
-
-    if (windMph != null) document.getElementById('windDisplay').textContent = 'Wind: ' + windMph + ' mph';
-    else document.getElementById('windDisplay').textContent = 'Wind: —';
-
-    if (gustToday != null) document.getElementById('gustDisplay').textContent = 'Gust: ' + gustToday + ' mph';
-    else document.getElementById('gustDisplay').textContent = 'Gust: —';
-
-    if (tempF != null && humidity != null){
-      const hi = heatIndex(tempF, humidity);
-      if (hi != null) document.getElementById('heatIndex').textContent = 'Feels Like ' + hi + '°';
-      else document.getElementById('heatIndex').textContent = '';
-    } else {
-      document.getElementById('heatIndex').textContent = '';
-    }
-
-    document.getElementById('status').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
-  } catch (err){
-    console.error(err);
-    document.getElementById('status').textContent = 'Weather error: ' + (err.message || err);
-  }
+try {
+let coords;
+if (key === 'auto'){
+coords = await new Promise((resolve) => {
+if (!navigator.geolocation) return resolve(LOCS.huntertown);
+navigator.geolocation.getCurrentPosition(
+pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+() => resolve(LOCS.huntertown),
+{ timeout: 5000 }
+);
+});
+} else {
+coords = LOCS[key] || LOCS.huntertown;
 }
-
-// PWS (client-side) using provided API key (embedding key in client is public; consider a server-side proxy)
-// Fetches temperature from PWS and weather condition from Open-Meteo (Huntertown location)
+const now = new Date();
+const today = now.toISOString().slice(0,10);
+const yesterdayDate = new Date(now.getTime() - 24*60*60*1000);
+const yesterday = yesterdayDate.toISOString().slice(0,10);
+const url = https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}+
+&current_weather=true&hourly=relativehumidity_2m,temperature_2m,windspeed_10m&daily=precipitation_sum,windspeed_10m_max&start_date=${yesterday}&end_date=${today}&timezone=auto;
+const res = await fetch(url);
+if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
+const data = await res.json();
+const current = data.current_weather || {};
+const tempC = current.temperature;
+const weathercode = current.weathercode;
+const windSpeed = current.windspeed;
+const tempF = tempC == null ? null : Math.round((tempC * 9/5) + 32);
+const windMph = windSpeed == null ? null : Math.round(windSpeed * 0.621371);
+let humidity = null;
+if (data.hourly && data.hourly.time && data.hourly.relativehumidity_2m){
+const times = data.hourly.time;
+const hums = data.hourly.relativehumidity_2m;
+const nowHourISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours()).toISOString().slice(0,13);
+let bestIdx = -1;
+for (let i=0;i<times.length;i++){
+if (times[i].slice(0,13) === nowHourISO){ bestIdx = i; break; }
+}
+if (bestIdx === -1) bestIdx = Math.max(0, times.length - 1);
+humidity = hums[bestIdx];
+}
+let rainToday = '—', rainYesterday = '—';
+if (data.daily && data.daily.time && data.daily.precipitation_sum){
+for (let i=0;i<data.daily.time.length;i++){
+const d = data.daily.time[i];
+const mmToInch = (mm) => (mm / 25.4).toFixed(2);
+if (d === today) rainToday = mmToInch(data.daily.precipitation_sum[i]) + ' In';
+if (d === yesterday) rainYesterday = mmToInch(data.daily.precipitation_sum[i]) + ' In';
+}
+if (rainToday === '—' && data.daily.precipitation_sum.length){
+const last = data.daily.precipitation_sum[data.daily.precipitation_sum.length-1];
+if (last != null) rainToday = (last / 25.4).toFixed(2) + ' In';
+}
+}
+let gustToday = null;
+if (data.daily && data.daily.time && data.daily.windspeed_10m_max){
+for (let i=0;i<data.daily.time.length;i++){
+const d = data.daily.time[i];
+if (d === today) {
+const gustKmh = data.daily.windspeed_10m_max[i];
+gustToday = gustKmh == null ? null : Math.round(gustKmh * 0.621371);
+}
+}
+}
+if (tempF != null) document.getElementById('temp').textContent = tempF + '°F';
+else document.getElementById('temp').textContent = '—°F';
+document.getElementById('weatherIcon').textContent = weatherEmoji(weathercode);
+document.getElementById('rainToday').textContent = rainToday;
+document.getElementById('rainYesterday').textContent = rainYesterday;
+if (windMph != null) document.getElementById('windDisplay').textContent = 'Wind: ' + windMph + ' mph';
+else document.getElementById('windDisplay').textContent = 'Wind: —';
+if (gustToday != null) document.getElementById('gustDisplay').textContent = 'Gust: ' + gustToday + ' mph';
+else document.getElementById('gustDisplay').textContent = 'Gust: —';
+if (tempF != null && humidity != null){
+const hi = heatIndex(tempF, humidity);
+if (hi != null) document.getElementById('heatIndex').textContent = 'Feels Like ' + hi + '°';
+else document.getElementById('heatIndex').textContent = '';
+} else {
+document.getElementById('heatIndex').textContent = '';
+}
+document.getElementById('status').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+} catch (err){
+console.error(err);
+document.getElementById('status').textContent = 'Weather error: ' + (err.message || err);
+}
+}
+// Corrected PWS function that fetches yesterday total
 function fetchPWSStation(){
-  const apiKey = '36cdfa6e59d844088dfa6e59d8640844';
-  const stationId = 'KINHUNTE19';
-  const url = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
-
-  document.getElementById('status').textContent = 'Fetching PWS...';
-  fetch(url).then(res => {
-    if (!res.ok) throw new Error('PWS fetch failed: ' + res.status);
-    return res.json();
-  }).then(d => {
-    const obs = (d && d.observations && d.observations[0]) || null;
-    if (!obs) throw new Error('No PWS observations returned');
-
-    const tempF = obs.imperial && obs.imperial.temp != null ? Math.round(obs.imperial.temp) : null;
-    const hi = obs.imperial && obs.imperial.heatIndex != null ? Math.round(obs.imperial.heatIndex) : null;
-    const windSpeed = obs.imperial && obs.imperial.windSpeed != null ? Math.round(obs.imperial.windSpeed) : null;
-    const windGust = obs.imperial && obs.imperial.windGust != null ? Math.round(obs.imperial.windGust) : null;
-
-    document.getElementById('temp').textContent = tempF != null ? tempF + '°F' : '—°F';
-    document.getElementById('heatIndex').textContent = hi != null ? 'Feels Like ' + hi + '°' : '';
-    
-    if (windSpeed != null) document.getElementById('windDisplay').textContent = 'Wind: ' + windSpeed + ' mph';
-    else document.getElementById('windDisplay').textContent = 'Wind: —';
-
-    if (windGust != null) document.getElementById('gustDisplay').textContent = 'Gust: ' + windGust + ' mph';
-    else document.getElementById('gustDisplay').textContent = 'Gust: —';
-
-    const precipToday = obs.imperial && obs.imperial.precipTotal != null ? obs.imperial.precipTotal + ' In' : '—';
-    const precipRate = obs.imperial && obs.imperial.precipRate != null ? obs.imperial.precipRate + ' In' : '—';
-    document.getElementById('rainToday').textContent = precipToday;
-    document.getElementById('rainYesterday').textContent = precipRate;
-
-    // Fetch weather condition from Open-Meteo for Huntertown
-    fetchWeatherCondition(LOCS.huntertown.lat, LOCS.huntertown.lon).then(weatherData => {
-      if (weatherData && weatherData.weathercode != null) {
-        document.getElementById('weatherIcon').textContent = weatherEmoji(weatherData.weathercode);
-      } else {
-        document.getElementById('weatherIcon').textContent = '☀️';
-      }
-    });
-
-    document.getElementById('status').textContent = 'PWS updated: ' + new Date().toLocaleTimeString();
-  }).catch(err => {
-    console.error(err);
-    document.getElementById('status').textContent = 'PWS error: ' + (err.message || err) + ' (CORS or network error possible)';
-  });
+const apiKey = '36cdfa6e59d844088dfa6e59d8640844';
+const stationId = 'KINHUNTE19';
+const currentUrl = https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey};
+const summaryUrl = https://api.weather.com/v2/pws/dailysummary/7day?stationId=${stationId}&format=json&units=e&apiKey=${apiKey};
+document.getElementById('status').textContent = 'Fetching PWS...';
+Promise.all([
+fetch(currentUrl).then(res => {
+if (!res.ok) throw new Error('PWS current failed: ' + res.status);
+return res.json();
+}),
+fetch(summaryUrl).then(res => {
+if (!res.ok) throw new Error('PWS summary failed: ' + res.status);
+return res.json();
+})
+]).then(([currentData, summaryData]) => {
+const obs = (currentData && currentData.observations && currentData.observations[0]) || null;
+if (!obs) throw new Error('No PWS observations returned');
+const tempF = obs.imperial && obs.imperial.temp != null ? Math.round(obs.imperial.temp) : null;
+const hi = obs.imperial && obs.imperial.heatIndex != null ? Math.round(obs.imperial.heatIndex) : null;
+const windSpeed = obs.imperial && obs.imperial.windSpeed != null ? Math.round(obs.imperial.windSpeed) : null;
+const windGust = obs.imperial && obs.imperial.windGust != null ? Math.round(obs.imperial.windGust) : null;
+document.getElementById('temp').textContent = tempF != null ? tempF + '°F' : '—°F';
+document.getElementById('heatIndex').textContent = hi != null ? 'Feels Like ' + hi + '°' : '';
+if (windSpeed != null) document.getElementById('windDisplay').textContent = 'Wind: ' + windSpeed + ' mph';
+else document.getElementById('windDisplay').textContent = 'Wind: —';
+if (windGust != null) document.getElementById('gustDisplay').textContent = 'Gust: ' + windGust + ' mph';
+else document.getElementById('gustDisplay').textContent = 'Gust: —';
+const precipToday = obs.imperial && obs.imperial.precipTotal != null ? obs.imperial.precipTotal + ' In' : '—';
+document.getElementById('rainToday').textContent = precipToday;
+let rainYesterday = '—';
+if (summaryData && summaryData.summaries && summaryData.summaries.length) {
+const now = new Date();
+const yesterdayDate = new Date(now.getTime() - 24*60*60*1000);
+const yesterdayStr = yesterdayDate.toISOString().slice(0,10);
+for (let i = 0; i < summaryData.summaries.length; i++) {
+const s = summaryData.summaries[i];
+if (s.obsTimeLocal && s.obsTimeLocal.slice(0,10) === yesterdayStr) {
+if (s.imperial && s.imperial.precipTotal != null) {
+rainYesterday = s.imperial.precipTotal + ' In';
 }
-
+break;
+}
+}
+}
+document.getElementById('rainYesterday').textContent = rainYesterday;
+fetchWeatherCondition(LOCS.huntertown.lat, LOCS.huntertown.lon).then(weatherData => {
+if (weatherData && weatherData.weathercode != null) {
+document.getElementById('weatherIcon').textContent = weatherEmoji(weatherData.weathercode);
+} else {
+document.getElementById('weatherIcon').textContent = '☀️';
+}
+});
+document.getElementById('status').textContent = 'PWS updated: ' + new Date().toLocaleTimeString();
+}).catch(err => {
+console.error(err);
+document.getElementById('status').textContent = 'PWS error: ' + (err.message || err) + ' (CORS or network error possible)';
+});
+}
 // Update UI based on selected source
 function updateFromSource(){
-  const src = document.getElementById('sourceSelect').value;
-  const loc = document.getElementById('locationSelect').value;
-  if (src === 'outdoor') fetchOutdoorWeather(loc);
-  else if (src === 'pws') fetchPWSStation();
+const src = document.getElementById('sourceSelect').value;
+const loc = document.getElementById('locationSelect').value;
+if (src === 'outdoor') fetchOutdoorWeather(loc);
+else if (src === 'pws') fetchPWSStation();
 }
-
 // Settings and persistence
 const sourceSelect = document.getElementById('sourceSelect');
 const locationSelect = document.getElementById('locationSelect');
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsPanel = document.getElementById('settingsPanel');
 const closeSettings = document.getElementById('closeSettings');
-
 function loadSettings(){
-  try{
-    const s = localStorage.getItem('bigtime.settings');
-    if (s){
-      const parsed = JSON.parse(s);
-      if (parsed.source) sourceSelect.value = parsed.source;
-      if (parsed.location) locationSelect.value = parsed.location;
-    }
-  }catch(e){console.warn('Failed to load settings', e);}  
+try{
+const s = localStorage.getItem('bigtime.settings');
+if (s){
+const parsed = JSON.parse(s);
+if (parsed.source) sourceSelect.value = parsed.source;
+if (parsed.location) locationSelect.value = parsed.location;
 }
+}catch(e){console.warn('Failed to load settings', e);}
 
+}
 function saveSettings(){
-  const obj = { source: sourceSelect.value, location: locationSelect.value };
-  try{ localStorage.setItem('bigtime.settings', JSON.stringify(obj)); }
-  catch(e){ console.warn('Failed to save settings', e); }
+const obj = { source: sourceSelect.value, location: locationSelect.value };
+try{ localStorage.setItem('bigtime.settings', JSON.stringify(obj)); }
+catch(e){ console.warn('Failed to save settings', e); }
 }
-
 // event listeners
 settingsBtn.addEventListener('click', ()=> settingsPanel.classList.add('open'));
 closeSettings.addEventListener('click', ()=> { settingsPanel.classList.remove('open'); saveSettings(); updateFromSource(); });
 sourceSelect.addEventListener('change', ()=> { saveSettings(); updateFromSource(); });
 locationSelect.addEventListener('change', ()=> { saveSettings(); if (sourceSelect.value === 'outdoor') fetchOutdoorWeather(locationSelect.value); });
-
 // initialize
 loadSettings();
 updateFromSource();
-
 // periodic refresh
 setInterval(()=>{
-  if (sourceSelect.value === 'outdoor') fetchOutdoorWeather(locationSelect.value);
-  else updateFromSource();
+if (sourceSelect.value === 'outdoor') fetchOutdoorWeather(locationSelect.value);
+else updateFromSource();
 }, 5 * 60 * 1000);
-
-</script>
-
-</body>
-</html>
