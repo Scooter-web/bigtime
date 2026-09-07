@@ -238,12 +238,39 @@ async function fetchPWS() {
     const gust = obs.imperial.windGust;
     document.getElementById("windDisplay").textContent = wind != null ? "Wind: " + Math.round(wind) + " mph" : "Wind: —";
     document.getElementById("gustDisplay").textContent = gust != null ? "Gust: " + Math.round(gust) + " mph" : "Gust: —";
-    // High starts as current gust (will be overwritten by daily summary if available)
+    // High starts as current gust (will be overwritten below once today's high is computed)
     document.getElementById("highestDisplay").textContent = gust != null ? "High: " + Math.round(gust) + " mph" : "High: —";
     document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
     document.getElementById("humidityDisplay").textContent = obs.humidity != null ? "Humidity: " + obs.humidity + "%" : "Humidity: —";
     document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
-    // 2. Daily summary (yesterday rain + today's high wind)
+
+    // 2a. Today's high wind — computed from today's raw observations.
+    // The dailysummary/7day endpoint only contains completed days, so it
+    // never has an entry for "today" and can't be used for this.
+    try {
+      const allDayUrl = `https://api.weather.com/v2/pws/observations/all/1day?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
+      const allRes = await fetch(allDayUrl);
+      if (!allRes.ok) throw new Error("All-day observations failed (" + allRes.status + ")");
+      const allData = await allRes.json();
+      const obsList = allData.observations || [];
+      let maxHigh = null;
+      for (const o of obsList) {
+        const wsHigh = o.imperial?.windspeedHigh;
+        const wgHigh = o.imperial?.windgustHigh;
+        const candidate = Math.max(wsHigh ?? -Infinity, wgHigh ?? -Infinity);
+        if (candidate > -Infinity && (maxHigh === null || candidate > maxHigh)) {
+          maxHigh = candidate;
+        }
+      }
+      if (maxHigh != null) {
+        document.getElementById("highestDisplay").textContent = "High: " + Math.round(maxHigh) + " mph";
+      }
+    } catch (e) {
+      console.warn("Today's high wind unavailable", e);
+      // Leave the current-gust fallback in place
+    }
+
+    // 2b. Daily summary (yesterday's rain)
     const summaryUrl = `https://api.weather.com/v2/pws/dailysummary/7day?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
     try {
       const sumRes = await fetch(summaryUrl);
@@ -260,19 +287,10 @@ async function fetchPWS() {
       const yestStr = yest.getFullYear() + "-" +
                       String(yest.getMonth() + 1).padStart(2, "0") + "-" +
                       String(yest.getDate()).padStart(2, "0");
-      let foundToday = null;
       let foundYest = null;
       for (const s of summaries) {
         const localDate = (s.obsTimeLocal || "").slice(0, 10);
-        if (localDate === todayStr) foundToday = s;
         if (localDate === yestStr) foundYest = s;
-      }
-      // High wind of the day (prefer windspeedHigh, then windgustHigh)
-      if (foundToday && foundToday.imperial) {
-        const high = foundToday.imperial.windspeedHigh ?? foundToday.imperial.windgustHigh;
-        if (high != null) {
-          document.getElementById("highestDisplay").textContent = "High: " + Math.round(high) + " mph";
-        }
       }
       // Yesterday rain
       if (foundYest && foundYest.imperial && foundYest.imperial.precipTotal != null) {
