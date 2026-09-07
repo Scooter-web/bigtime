@@ -11,9 +11,9 @@
   .container { text-align:center; margin-top:-5vh; width:100%; max-width:900px; }
   .day { font-size:3.5rem; font-weight:600; margin-bottom:0.5vh; color: #eee; }
   .weather-row { font-size:3.2rem; margin-bottom:1.5vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
-  .wind-row { font-size:2rem; margin-bottom:1.5vh; color:#aaa; display:flex; justify-content:center; gap:2rem; }
+  .wind-row { font-size:2rem; margin-bottom:1.5vh; color:#aaa; display:flex; justify-content:center; gap:1.8rem; flex-wrap:wrap; }
   .rain-row { font-size:1.6rem; margin-bottom:1vh; display:flex; justify-content:center; gap:1.5rem; }
-  .humidity-row { font-size:1.6rem; margin-bottom:2vh; color:#34c759; }   /* same size as rain, green */
+  .humidity-row { font-size:1.6rem; margin-bottom:2vh; color:#34c759; }
   .date { font-size:3.2rem; font-weight:400; color: #ccc; margin-bottom: 0.5vh; }
   .time { font-size:4.5rem; font-weight:700; color: #fff; }
   .temp { color:#ff9500; font-weight:600; }
@@ -33,7 +33,7 @@
   @media (min-width: 768px) and (min-height: 600px) {
     .day { font-size:5rem; }
     .weather-row { font-size:4.5rem; gap:1rem; }
-    .wind-row { font-size:2.8rem; gap:3rem; }
+    .wind-row { font-size:2.8rem; gap:2.5rem; }
     .rain-row { font-size:2.2rem; gap:2rem; }
     .humidity-row { font-size:2.2rem; }
     .date { font-size:4.5rem; }
@@ -53,6 +53,7 @@
   </div>
   <div class="wind-row">
     <span id="windDisplay">Wind: —</span>
+    <span id="gustDisplay">Gust: —</span>
     <span id="highestDisplay">Highest: —</span>
   </div>
   <div class="rain-row">
@@ -145,7 +146,8 @@ async function fetchOutdoorWeather(key){
     const yesterdayDate = new Date(now.getTime() - 24*60*60*1000);
     const yesterday = yesterdayDate.toISOString().slice(0,10);
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
-                `&current_weather=true&hourly=relativehumidity_2m&daily=precipitation_sum,windspeed_10m_max` +
+                `&current_weather=true&hourly=relativehumidity_2m,windgusts_10m` +
+                `&daily=precipitation_sum,windspeed_10m_max,windgusts_10m_max` +
                 `&start_date=${yesterday}&end_date=${today}&timezone=auto&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
@@ -154,15 +156,16 @@ async function fetchOutdoorWeather(key){
     const tempF = current.temperature != null ? Math.round(current.temperature) : null;
     const weathercode = current.weathercode;
     const windMph = current.windspeed != null ? Math.round(current.windspeed) : null;
-    // humidity
+    // humidity + current gust from hourly
     let humidity = null;
-    if (data.hourly && data.hourly.time && data.hourly.relativehumidity_2m){
+    let currentGust = null;
+    if (data.hourly && data.hourly.time){
       const times = data.hourly.time;
-      const hums = data.hourly.relativehumidity_2m;
       const nowHour = now.toISOString().slice(0,13);
       let bestIdx = times.findIndex(t => t.slice(0,13) === nowHour);
       if (bestIdx === -1) bestIdx = Math.max(0, times.length - 1);
-      humidity = hums[bestIdx];
+      if (data.hourly.relativehumidity_2m) humidity = data.hourly.relativehumidity_2m[bestIdx];
+      if (data.hourly.windgusts_10m) currentGust = data.hourly.windgusts_10m[bestIdx];
     }
     // rain
     let rainToday = '—', rainYesterday = '—';
@@ -174,12 +177,16 @@ async function fetchOutdoorWeather(key){
         if (d === yesterday) rainYesterday = val.toFixed(2) + '"';
       });
     }
-    // highest wind of the day
+    // Highest wind of the day (prefer max wind speed, fallback to max gust)
     let highestToday = null;
-    if (data.daily && data.daily.time && data.daily.windspeed_10m_max){
+    if (data.daily && data.daily.time){
       data.daily.time.forEach((d, i) => {
-        if (d === today && data.daily.windspeed_10m_max[i] != null) {
-          highestToday = Math.round(data.daily.windspeed_10m_max[i]);
+        if (d === today) {
+          if (data.daily.windspeed_10m_max && data.daily.windspeed_10m_max[i] != null) {
+            highestToday = Math.round(data.daily.windspeed_10m_max[i]);
+          } else if (data.daily.windgusts_10m_max && data.daily.windgusts_10m_max[i] != null) {
+            highestToday = Math.round(data.daily.windgusts_10m_max[i]);
+          }
         }
       });
     }
@@ -188,6 +195,7 @@ async function fetchOutdoorWeather(key){
     document.getElementById('rainToday').textContent = rainToday;
     document.getElementById('rainYesterday').textContent = rainYesterday;
     document.getElementById('windDisplay').textContent = windMph != null ? 'Wind: ' + windMph + ' mph' : 'Wind: —';
+    document.getElementById('gustDisplay').textContent = currentGust != null ? 'Gust: ' + Math.round(currentGust) + ' mph' : 'Gust: —';
     document.getElementById('highestDisplay').textContent = highestToday != null ? 'Highest: ' + highestToday + ' mph' : 'Highest: —';
     document.getElementById('humidityDisplay').textContent = humidity != null ? 'Humidity: ' + Math.round(humidity) + '%' : 'Humidity: —';
     if (tempF != null && humidity != null){
@@ -218,9 +226,11 @@ async function fetchPWS() {
     document.getElementById("weatherIcon").textContent = "🌡️";
     document.getElementById("heatIndex").textContent = "Real Feel " + Math.round(obs.imperial.heatIndex) + "°";
     const wind = obs.imperial.windSpeed;
+    const gust = obs.imperial.windGust;
     document.getElementById("windDisplay").textContent = wind != null ? "Wind: " + Math.round(wind) + " mph" : "Wind: —";
-    // Highest will be set from daily summary below (fallback to current gust if summary missing)
-    document.getElementById("highestDisplay").textContent = obs.imperial.windGust != null ? "Highest: " + Math.round(obs.imperial.windGust) + " mph" : "Highest: —";
+    document.getElementById("gustDisplay").textContent = gust != null ? "Gust: " + Math.round(gust) + " mph" : "Gust: —";
+    // Highest starts as current gust (will be overwritten by daily summary if available)
+    document.getElementById("highestDisplay").textContent = gust != null ? "Highest: " + Math.round(gust) + " mph" : "Highest: —";
     document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
     document.getElementById("humidityDisplay").textContent = obs.humidity != null ? "Humidity: " + obs.humidity + "%" : "Humidity: —";
     document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
@@ -248,7 +258,7 @@ async function fetchPWS() {
         if (localDate === todayStr) foundToday = s;
         if (localDate === yestStr) foundYest = s;
       }
-      // Highest wind of the day (prefer windspeedHigh)
+      // Highest wind of the day (prefer windspeedHigh, then windgustHigh)
       if (foundToday && foundToday.imperial) {
         const high = foundToday.imperial.windspeedHigh ?? foundToday.imperial.windgustHigh;
         if (high != null) {
@@ -259,7 +269,6 @@ async function fetchPWS() {
       if (foundYest && foundYest.imperial && foundYest.imperial.precipTotal != null) {
         document.getElementById("rainYesterday").textContent = foundYest.imperial.precipTotal + "\"";
       } else {
-        // Fallback: try second-to-last entry
         if (summaries.length >= 2) {
           const fallback = summaries[summaries.length - 2];
           document.getElementById("rainYesterday").textContent = (fallback.imperial?.precipTotal ?? 0) + "\"";
