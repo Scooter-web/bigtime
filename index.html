@@ -258,64 +258,66 @@ async function fetchOutdoorWeather(key){
   }
 }
 
-// PWS (client-side) using provided API key (embedding key in client is public; consider a server-side proxy)
 function fetchPWS() {
   const apiKey = "36cdfa6e59d844088dfa6e59d8640844";
   const stationId = "KINHUNTE19";
 
-  // 1. Current observation (temp, heat index, today's rain)
   const currentUrl = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
-
-  // 2. 7-day daily summary (to get yesterday's total)
   const summaryUrl = `https://api.weather.com/v2/pws/dailysummary/7day?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
 
-  Promise.all([
-    fetch(currentUrl).then(r => r.json()),
-    fetch(summaryUrl).then(r => r.json())
-  ])
-  .then(([currentData, summaryData]) => {
-    const obs = currentData.observations[0];
+  // Always get live data first
+  fetch(currentUrl)
+    .then(r => {
+      if (!r.ok) throw new Error("Current observation failed (" + r.status + ")");
+      return r.json();
+    })
+    .then(d => {
+      const obs = d.observations && d.observations[0];
+      if (!obs) throw new Error("No observation data");
 
-    // Temperature & "feels like"
-    document.getElementById("temp").textContent = Math.round(obs.imperial.temp) + "°F";
-    document.getElementById("weatherIcon").textContent = "🌡️";
-    document.getElementById("heatIndex").textContent = "Real Feel " + Math.round(obs.imperial.heatIndex) + "°";
+      // Temperature & feels-like
+      document.getElementById("temp").textContent = Math.round(obs.imperial.temp) + "°F";
+      document.getElementById("weatherIcon").textContent = "🌡️";
+      document.getElementById("heatIndex").textContent = "Real Feel " + Math.round(obs.imperial.heatIndex) + "°";
 
-    // Today's rain (from current observation – most up-to-date)
-    document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
+      // Wind (if available)
+      const wind = obs.imperial.windSpeed;
+      const gust = obs.imperial.windGust;
+      document.getElementById("windDisplay").textContent = wind != null ? "Wind: " + Math.round(wind) + " mph" : "Wind: —";
+      document.getElementById("gustDisplay").textContent = gust != null ? "Gust: " + Math.round(gust) + " mph" : "Gust: —";
 
-    // Yesterday's rain – second-to-last entry in the summaries array
-    // (the array is chronological; last entry is today/partial)
-    const summaries = summaryData.summaries || [];
-    if (summaries.length >= 2) {
-      const yesterday = summaries[summaries.length - 2];
-      const yestPrecip = yesterday.imperial?.precipTotal ?? 0;
-      document.getElementById("rainYesterday").textContent = yestPrecip + "\"";
-    } else {
-      document.getElementById("rainYesterday").textContent = "—";
-    }
+      // Today's rain (most up-to-date)
+      document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
 
-    document.getElementById("status").textContent = "";
-  })
-  .catch(() => {
-    document.getElementById("status").textContent = "PWS offline or API error";
-  });
-}
+      document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
 
-    // Fetch weather condition from Open-Meteo for Huntertown
-    fetchWeatherCondition(LOCS.huntertown.lat, LOCS.huntertown.lon).then(weatherData => {
-      if (weatherData && weatherData.weathercode != null) {
-        document.getElementById('weatherIcon').textContent = weatherEmoji(weatherData.weathercode);
-      } else {
-        document.getElementById('weatherIcon').textContent = '☀️';
-      }
+      // Now try yesterday's rain (non-blocking)
+      return fetch(summaryUrl)
+        .then(r => {
+          if (!r.ok) throw new Error("Summary failed");
+          return r.json();
+        })
+        .then(summaryData => {
+          const summaries = summaryData.summaries || [];
+          if (summaries.length >= 2) {
+            // Array is oldest → newest; second-to-last is yesterday
+            const yest = summaries[summaries.length - 2];
+            const yestPrecip = yest.imperial?.precipTotal ?? 0;
+            document.getElementById("rainYesterday").textContent = yestPrecip + "\"";
+          } else {
+            document.getElementById("rainYesterday").textContent = "—";
+          }
+        })
+        .catch(() => {
+          // Summary failed – keep live data, just mark yesterday unknown
+          document.getElementById("rainYesterday").textContent = "—";
+          console.warn("Could not load yesterday rain");
+        });
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("status").textContent = "PWS error: " + (err.message || err);
     });
-
-    document.getElementById('status').textContent = 'PWS updated: ' + new Date().toLocaleTimeString();
-  }).catch(err => {
-    console.error(err);
-    document.getElementById('status').textContent = 'PWS error: ' + (err.message || err) + ' (CORS or network error possible)';
-  });
 }
 
 // Update UI based on selected source
