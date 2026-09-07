@@ -8,18 +8,33 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; width:100%; background:#000; color:#fff; font-family:-apple-system, BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif; overflow:hidden; }
   body { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; padding-top:max(16px, env(safe-area-inset-top)); padding-bottom:max(16px, env(safe-area-inset-bottom)); }
-  .container { text-align:center; margin-top:-5vh; width:100%; max-width:900px; }
-  .day { font-size:3.5rem; font-weight:600; margin-bottom:0.5vh; color: #eee; }
-  .weather-row { font-size:3.2rem; margin-bottom:1.5vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
-  .wind-row { font-size:1.9rem; margin-bottom:1.5vh; color:#aaa; display:flex; justify-content:center; gap:1.8rem; flex-wrap:wrap; }
-  .rain-row { font-size:1.5rem; margin-bottom:1vh; display:flex; justify-content:center; gap:1.5rem; }
-  .humidity-row { font-size:1.6rem; margin-bottom:2vh; color:#34c759; }
-  .date { font-size:3.2rem; font-weight:400; color: #ccc; margin-bottom: 0.5vh; }
-  .time { font-size:4.5rem; font-weight:700; color: #fff; }
+  .container { text-align:center; margin-top:-3vh; width:100%; max-width:900px; }
+
+  /* Section 1: Clock */
+  .time { font-size:5.5rem; font-weight:700; color:#fff; line-height:1; }
+  .date-row { font-size:1.7rem; color:#999; margin-top:0.6vh; margin-bottom:3vh; font-weight:400; }
+  .date-row .day { color:#ddd; font-weight:600; }
+
+  /* Section 2: Temp */
+  .weather-row { font-size:3.4rem; margin-bottom:0.3vh; display:flex; justify-content:center; align-items:baseline; gap:0.8rem; }
   .temp { color:#ff9500; font-weight:600; }
-  .hi { color:#ff6b35; font-size: 1.8rem; margin-left: 8px; font-weight: 500; }
-  .rain-label { color:#8ab4e0; }
-  .rain-value { color:#7ec8ff; font-weight:500; }
+  .period { font-size: 0.5em; color:#888; font-weight:400; align-self:center; }
+  .hi { color:#ff6b35; font-size:1.3rem; font-weight:500; margin-bottom:3vh; }
+
+  /* Section 3: Wind card */
+  .wind-card { background:#111; border:1px solid #262626; border-radius:16px; padding:1.4vh 2rem; margin-bottom:2vh; display:flex; justify-content:center; gap:2.2rem; flex-wrap:wrap; }
+  .wind-stat { display:flex; flex-direction:column; align-items:center; }
+  .wind-stat .val { font-size:1.9rem; color:#eee; font-weight:600; }
+  .wind-stat .lbl { font-size:0.85rem; color:#777; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+  .wind-stat.high .val { color:#ff6b35; }
+
+  /* Section 4: Rain + Humidity combined */
+  .conditions-row { font-size:1.5rem; color:#aaa; display:flex; justify-content:center; align-items:center; gap:1.6rem; flex-wrap:wrap; }
+  .conditions-row .item { display:flex; align-items:center; gap:0.4rem; }
+  .conditions-row .rain-value { color:#7ec8ff; font-weight:500; }
+  .conditions-row .humidity-value { color:#34c759; font-weight:500; }
+  .conditions-row .sep { color:#333; }
+
   .settings-btn { position:fixed; bottom:max(20px, env(safe-area-inset-bottom)); right:max(20px, env(safe-area-inset-right)); width:44px; height:44px; border:none; background:transparent; color:#555; font-size:1.8rem; cursor:pointer; z-index: 10; }
   .settings-panel { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:none; padding:20px; z-index:100; align-items:center; justify-content:center; }
   .settings-panel.open { display:flex; }
@@ -29,41 +44,59 @@
   select, input { width:100%; padding:12px; background:#2c2c2e; color:#fff; border:1px solid #444; border-radius:10px; font-size:1rem; outline: none; }
   .close-settings { width:100%; padding:14px; background:#34c759; border:none; border-radius:12px; color:#fff; font-size:1.1rem; font-weight:600; cursor:pointer; margin-top:10px; }
   .status { margin-top:15px; color:#ff3b30; text-align:center; font-size:0.85rem; min-height: 1.2em; }
-  
+
   @media (min-width: 768px) and (min-height: 600px) {
-    .day { font-size:5rem; }
-    .weather-row { font-size:4.5rem; gap:1rem; }
-    .wind-row { font-size:2.7rem; gap:2.5rem; }
-    .rain-row { font-size:2.1rem; gap:2rem; }
-    .humidity-row { font-size:2.2rem; }
-    .date { font-size:4.5rem; }
-    .time { font-size:6rem; }
-    .hi { font-size: 2.5rem; margin-left: 12px; }
+    .time { font-size:7.5rem; }
+    .date-row { font-size:2.3rem; }
+    .weather-row { font-size:5rem; }
+    .hi { font-size:1.8rem; }
+    .wind-card { padding:2vh 3rem; gap:3rem; }
+    .wind-stat .val { font-size:2.6rem; }
+    .wind-stat .lbl { font-size:1rem; }
+    .conditions-row { font-size:2rem; gap:2.2rem; }
   }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="day" id="day">—</div>
+
+  <!-- Section 1: Clock (moved to top) -->
+  <div class="time" id="time">—</div>
+  <div class="date-row"><span class="day" id="day">—</span> · <span id="date">—</span></div>
+
+  <!-- Section 2: Temp -->
   <div class="weather-row">
     <span id="weatherIcon">☀️</span>
-    <span id="period">—</span>
     <span class="temp" id="temp">—°F</span>
-    <span class="hi" id="heatIndex"></span>
+    <span class="period" id="period">—</span>
   </div>
-  <div class="wind-row">
-    <span id="windDisplay">Wind: —</span>
-    <span id="gustDisplay">Gust: —</span>
-    <span id="highestDisplay">High: —</span>
+  <div class="hi" id="heatIndex"></div>
+
+  <!-- Section 3: Wind, grouped into one card -->
+  <div class="wind-card">
+    <div class="wind-stat">
+      <span class="val" id="windVal">—</span>
+      <span class="lbl">Wind</span>
+    </div>
+    <div class="wind-stat">
+      <span class="val" id="gustVal">—</span>
+      <span class="lbl">Gust</span>
+    </div>
+    <div class="wind-stat high">
+      <span class="val" id="highVal">—</span>
+      <span class="lbl">High</span>
+    </div>
   </div>
-  <div class="rain-row">
-    <span class="rain-label" style="font-weight:bold">Rain</span>
-    <span><span class="rain-label">Today</span> <span class="rain-value" id="rainToday">—</span></span>
-    <span><span class="rain-label">Yesterday</span> <span class="rain-value" id="rainYesterday">—</span></span>
+
+  <!-- Section 4: Rain + Humidity combined -->
+  <div class="conditions-row">
+    <span class="item">💧 <span class="rain-value" id="rainToday">—</span> today</span>
+    <span class="sep">|</span>
+    <span class="item">💧 <span class="rain-value" id="rainYesterday">—</span> yesterday</span>
+    <span class="sep">|</span>
+    <span class="item">💦 <span class="humidity-value" id="humidityVal">—</span></span>
   </div>
-  <div class="humidity-row" id="humidityDisplay">Humidity: —</div>
-  <div class="date" id="date">—</div>
-  <div class="time" id="time">—</div>
+
 </div>
 <button class="settings-btn" id="settingsBtn">⚙️</button>
 <div class="settings-panel" id="settingsPanel">
@@ -202,10 +235,10 @@ async function fetchOutdoorWeather(key){
     document.getElementById('weatherIcon').textContent = weatherEmoji(weathercode);
     document.getElementById('rainToday').textContent = rainToday;
     document.getElementById('rainYesterday').textContent = rainYesterday;
-    document.getElementById('windDisplay').textContent = windMph != null ? 'Wind: ' + windMph + ' mph' : 'Wind: —';
-    document.getElementById('gustDisplay').textContent = currentGust != null ? 'Gust: ' + Math.round(currentGust) + ' mph' : 'Gust: —';
-    document.getElementById('highestDisplay').textContent = highestToday != null ? 'High: ' + highestToday + ' mph' : 'High: —';
-    document.getElementById('humidityDisplay').textContent = humidity != null ? 'Humidity: ' + Math.round(humidity) + '%' : 'Humidity: —';
+    document.getElementById('windVal').textContent = windMph != null ? windMph + ' mph' : '—';
+    document.getElementById('gustVal').textContent = currentGust != null ? Math.round(currentGust) + ' mph' : '—';
+    document.getElementById('highVal').textContent = highestToday != null ? highestToday + ' mph' : '—';
+    document.getElementById('humidityVal').textContent = humidity != null ? Math.round(humidity) + '%' : '—';
     if (tempF != null && humidity != null){
       const hi = heatIndex(tempF, humidity);
       document.getElementById('heatIndex').textContent = hi != null ? 'Feels Like ' + hi + '°' : '';
@@ -236,12 +269,12 @@ async function fetchPWS() {
     document.getElementById("heatIndex").textContent = "Feels Like " + Math.round(obs.imperial.heatIndex) + "°";
     const wind = obs.imperial.windSpeed;
     const gust = obs.imperial.windGust;
-    document.getElementById("windDisplay").textContent = wind != null ? "Wind: " + Math.round(wind) + " mph" : "Wind: —";
-    document.getElementById("gustDisplay").textContent = gust != null ? "Gust: " + Math.round(gust) + " mph" : "Gust: —";
+    document.getElementById("windVal").textContent = wind != null ? Math.round(wind) + " mph" : "—";
+    document.getElementById("gustVal").textContent = gust != null ? Math.round(gust) + " mph" : "—";
     // High starts as current gust (will be overwritten below once today's high is computed)
-    document.getElementById("highestDisplay").textContent = gust != null ? "High: " + Math.round(gust) + " mph" : "High: —";
+    document.getElementById("highVal").textContent = gust != null ? Math.round(gust) + " mph" : "—";
     document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
-    document.getElementById("humidityDisplay").textContent = obs.humidity != null ? "Humidity: " + obs.humidity + "%" : "Humidity: —";
+    document.getElementById("humidityVal").textContent = obs.humidity != null ? obs.humidity + "%" : "—";
     document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
 
     // 2a. Today's high wind — computed from today's raw observations.
@@ -263,7 +296,7 @@ async function fetchPWS() {
         }
       }
       if (maxHigh != null) {
-        document.getElementById("highestDisplay").textContent = "High: " + Math.round(maxHigh) + " mph";
+        document.getElementById("highVal").textContent = Math.round(maxHigh) + " mph";
       }
     } catch (e) {
       console.warn("Today's high wind unavailable", e);
