@@ -137,38 +137,60 @@ function fetchOutdoor() {
   }
 }
 
-function fetchPWS() {
-  const url = "https://api.weather.com/v2/pws/observations/current?stationId=KINHUNTE19&format=json&units=e&apiKey=36cdfa6e59d844088dfa6e59d8640844";
-  fetch(url).then(r => r.json()).then(d => {
-    const obs = d.observations[0];
+/ PWS (client-side)
+async function fetchPWS() {
+  const apiKey = "36cdfa6e59d844088dfa6e59d8640844";
+  const stationId = "KINHUNTE19";
+
+  const currentUrl = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
+  const summaryUrl = `https://api.weather.com/v2/pws/dailysummary/7day?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
+
+  try {
+    // 1. Live observation (temperature, wind, today's rain)
+    const res = await fetch(currentUrl);
+    if (!res.ok) throw new Error("Current obs failed: " + res.status);
+    const data = await res.json();
+    const obs = data.observations?.[0];
+    if (!obs) throw new Error("No observation data");
+
     document.getElementById("temp").textContent = Math.round(obs.imperial.temp) + "°F";
     document.getElementById("weatherIcon").textContent = "🌡️";
     document.getElementById("heatIndex").textContent = "Real Feel " + Math.round(obs.imperial.heatIndex) + "°";
-    document.getElementById("rainToday").textContent = obs.imperial.precipTotal + "\"";
-    document.getElementById("rainYesterday").textContent = obs.imperial.precipRate + "\"";
-    document.getElementById("status").textContent = "";
-  }).catch(() => { document.getElementById("status").textContent = "PWS offline or API error"; });
-}
 
-function fetchTag() {
-  const uuid = document.getElementById("uuidInput").value;
-  if (!uuid) { document.getElementById("status").textContent = "Enter UUID in settings"; return; }
-  fetch("https://my.wirelesstag.net/ethLogs.asmx/GetTagByUUID?uuid=" + uuid).then(r => r.json()).then(d => {
-    const t = Math.round(d.temperature);
-    document.getElementById("temp").textContent = t + "°F";
-    document.getElementById("weatherIcon").textContent = "🌡️";
-    document.getElementById("heatIndex").textContent = "Real Feel " + calcHeatIndex(t, d.humidity) + "°";
-    document.getElementById("rainToday").textContent = d.rainToday + "\"";
-    document.getElementById("rainYesterday").textContent = d.rainYesterday + "\"";
-    document.getElementById("status").textContent = "";
-  }).catch(() => { document.getElementById("status").textContent = "Wireless Tag error"; });
-}
+    // Wind
+    const wind = obs.imperial.windSpeed;
+    const gust = obs.imperial.windGust;
+    document.getElementById("windDisplay").textContent = wind != null ? "Wind: " + Math.round(wind) + " mph" : "Wind: —";
+    document.getElementById("gustDisplay").textContent = gust != null ? "Gust: " + Math.round(gust) + " mph" : "Gust: —";
 
-function fetchTemp() {
-  const src = document.getElementById("sourceSelect").value;
-  if (src === "pws") fetchPWS();
-  else if (src === "wirelesstag") fetchTag();
-  else fetchOutdoor();
+    // Today's rain
+    document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
+
+    document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
+
+    // 2. Yesterday's rain (from daily summary)
+    try {
+      const sumRes = await fetch(summaryUrl);
+      if (!sumRes.ok) throw new Error("Summary failed");
+      const sumData = await sumRes.json();
+      const summaries = sumData.summaries || [];
+
+      if (summaries.length >= 2) {
+        // Array is oldest → newest. Second-to-last entry = yesterday
+        const yest = summaries[summaries.length - 2];
+        document.getElementById("rainYesterday").textContent = (yest.imperial?.precipTotal ?? 0) + "\"";
+      } else {
+        document.getElementById("rainYesterday").textContent = "—";
+      }
+    } catch (e) {
+      console.warn("Yesterday rain unavailable", e);
+      document.getElementById("rainYesterday").textContent = "—";
+    }
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById("status").textContent = "PWS error: " + (err.message || err);
+  }
 }
 
 // 4. Settings Management
