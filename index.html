@@ -12,7 +12,8 @@
   .day { font-size:3.5rem; font-weight:600; margin-bottom:0.5vh; color: #eee; }
   .weather-row { font-size:3.2rem; margin-bottom:1.5vh; display:flex; justify-content:center; align-items:center; gap:0.8rem; }
   .wind-row { font-size:2rem; margin-bottom:1.5vh; color:#aaa; display:flex; justify-content:center; gap:2rem; }
-  .rain-row { font-size:1.6rem; margin-bottom:2vh; display:flex; justify-content:center; gap:1.5rem; }
+  .rain-row { font-size:1.6rem; margin-bottom:1vh; display:flex; justify-content:center; gap:1.5rem; }
+  .humidity-row { font-size:1.6rem; margin-bottom:2vh; color:#34c759; }   /* same size as rain, green */
   .date { font-size:3.2rem; font-weight:400; color: #ccc; margin-bottom: 0.5vh; }
   .time { font-size:4.5rem; font-weight:700; color: #fff; }
   .temp { color:#ff9500; font-weight:600; }
@@ -34,6 +35,7 @@
     .weather-row { font-size:4.5rem; gap:1rem; }
     .wind-row { font-size:2.8rem; gap:3rem; }
     .rain-row { font-size:2.2rem; gap:2rem; }
+    .humidity-row { font-size:2.2rem; }
     .date { font-size:4.5rem; }
     .time { font-size:6rem; }
     .hi { font-size: 2.5rem; margin-left: 12px; }
@@ -57,6 +59,7 @@
     <span><span class="rain-label">Today</span> <span class="rain-value" id="rainToday">—</span></span>
     <span><span class="rain-label">Yesterday</span> <span class="rain-value" id="rainYesterday">—</span></span>
   </div>
+  <div class="humidity-row" id="humidityDisplay">Humidity: —</div>
   <div class="date" id="date">—</div>
   <div class="time" id="time">—</div>
 </div>
@@ -198,6 +201,7 @@ async function fetchOutdoorWeather(key){
     document.getElementById('rainYesterday').textContent = rainYesterday;
     document.getElementById('windDisplay').textContent = windMph != null ? 'Wind: ' + windMph + ' mph' : 'Wind: —';
     document.getElementById('gustDisplay').textContent = gustToday != null ? 'Gust: ' + gustToday + ' mph' : 'Gust: —';
+    document.getElementById('humidityDisplay').textContent = humidity != null ? 'Humidity: ' + Math.round(humidity) + '%' : 'Humidity: —';
 
     if (tempF != null && humidity != null){
       const hi = heatIndex(tempF, humidity);
@@ -213,13 +217,12 @@ async function fetchOutdoorWeather(key){
   }
 }
 
-// PWS – clean working version
+// PWS
 async function fetchPWS() {
   const apiKey = "36cdfa6e59d844088dfa6e59d8640844";
   const stationId = "KINHUNTE19";
 
   try {
-    // Current observation
     const currentUrl = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
     const res = await fetch(currentUrl);
     if (!res.ok) throw new Error("Current observation failed (" + res.status + ")");
@@ -237,9 +240,10 @@ async function fetchPWS() {
     document.getElementById("gustDisplay").textContent = gust != null ? "Gust: " + Math.round(gust) + " mph" : "Gust: —";
 
     document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
+    document.getElementById("humidityDisplay").textContent = obs.humidity != null ? "Humidity: " + obs.humidity + "%" : "Humidity: —";
     document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
 
-    // Yesterday – use historical daily for the exact date
+    // Yesterday rain
     const yest = new Date();
     yest.setDate(yest.getDate() - 1);
     const yestStr = yest.getFullYear().toString() +
