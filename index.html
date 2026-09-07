@@ -104,10 +104,10 @@ function updateClock(){
 setInterval(updateClock,1000);
 updateClock();
 
-// Helper – same definition of “Night” used by the period label
+// Night for the icon: 9 PM – 5:59 AM
 function isNight() {
   const h = new Date().getHours();
-  return h >= 21;
+  return h >= 21 || h < 6;
 }
 
 // Heat Index
