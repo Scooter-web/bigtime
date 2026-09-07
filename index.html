@@ -231,8 +231,8 @@ async function fetchPWS() {
     const obs = data.observations?.[0];
     if (!obs) throw new Error("No observation data");
     document.getElementById("temp").textContent = Math.round(obs.imperial.temp) + "°F";
-    // Night → crescent moon, otherwise thermometer
-    document.getElementById("weatherIcon").textContent = isNight() ? "🌙" : "🌡️";
+    // Night → crescent moon, otherwise sun
+    document.getElementById("weatherIcon").textContent = isNight() ? "🌙" : "☀️";
     document.getElementById("heatIndex").textContent = "Feels Like " + Math.round(obs.imperial.heatIndex) + "°";
     const wind = obs.imperial.windSpeed;
     const gust = obs.imperial.windGust;
