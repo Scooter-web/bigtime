@@ -53,7 +53,7 @@
   </div>
   <div class="wind-row">
     <span id="windDisplay">Wind: —</span>
-    <span id="gustDisplay">Gust: —</span>
+    <span id="highestDisplay">Highest: —</span>
   </div>
   <div class="rain-row">
     <span><span class="rain-label">Today</span> <span class="rain-value" id="rainToday">—</span></span>
@@ -101,7 +101,6 @@ function updateClock(){
 }
 setInterval(updateClock,1000);
 updateClock();
-
 // Heat Index
 function heatIndex(T,R){
   if (T == null || R == null) return null;
@@ -109,7 +108,6 @@ function heatIndex(T,R){
   const HI = -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 6.83783e-3 * T * T - 5.481717e-2 * R * R + 1.22874e-3 * T * T * R + 8.5282e-4 * T * R * R - 1.99e-6 * T * T * R * R;
   return Math.round(HI);
 }
-
 function weatherEmoji(code){
   if (code === 0) return '☀️';
   if (code === 1 || code === 2 || code === 3) return '⛅';
@@ -121,13 +119,11 @@ function weatherEmoji(code){
   if ([95,96,99].includes(code)) return '⛈️';
   return '🌤️';
 }
-
 const LOCS = {
   huntertown: { lat: 41.228, lon: -85.172 },
   fortwayne:  { lat: 41.0793, lon: -85.1394 },
   indianapolis:{ lat: 39.7684, lon: -86.1581 }
 };
-
 // Outdoor (Open-Meteo)
 async function fetchOutdoorWeather(key){
   try {
@@ -144,25 +140,20 @@ async function fetchOutdoorWeather(key){
     } else {
       coords = LOCS[key] || LOCS.huntertown;
     }
-
     const now = new Date();
     const today = now.toISOString().slice(0,10);
     const yesterdayDate = new Date(now.getTime() - 24*60*60*1000);
     const yesterday = yesterdayDate.toISOString().slice(0,10);
-
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
                 `&current_weather=true&hourly=relativehumidity_2m&daily=precipitation_sum,windspeed_10m_max` +
                 `&start_date=${yesterday}&end_date=${today}&timezone=auto&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch`;
-
     const res = await fetch(url);
     if (!res.ok) throw new Error('Weather fetch failed: ' + res.status);
     const data = await res.json();
-
     const current = data.current_weather || {};
     const tempF = current.temperature != null ? Math.round(current.temperature) : null;
     const weathercode = current.weathercode;
     const windMph = current.windspeed != null ? Math.round(current.windspeed) : null;
-
     // humidity
     let humidity = null;
     if (data.hourly && data.hourly.time && data.hourly.relativehumidity_2m){
@@ -173,7 +164,6 @@ async function fetchOutdoorWeather(key){
       if (bestIdx === -1) bestIdx = Math.max(0, times.length - 1);
       humidity = hums[bestIdx];
     }
-
     // rain
     let rainToday = '—', rainYesterday = '—';
     if (data.daily && data.daily.time && data.daily.precipitation_sum){
@@ -184,44 +174,38 @@ async function fetchOutdoorWeather(key){
         if (d === yesterday) rainYesterday = val.toFixed(2) + '"';
       });
     }
-
-    // gust
-    let gustToday = null;
+    // highest wind of the day
+    let highestToday = null;
     if (data.daily && data.daily.time && data.daily.windspeed_10m_max){
       data.daily.time.forEach((d, i) => {
         if (d === today && data.daily.windspeed_10m_max[i] != null) {
-          gustToday = Math.round(data.daily.windspeed_10m_max[i]);
+          highestToday = Math.round(data.daily.windspeed_10m_max[i]);
         }
       });
     }
-
     if (tempF != null) document.getElementById('temp').textContent = tempF + '°F';
     document.getElementById('weatherIcon').textContent = weatherEmoji(weathercode);
     document.getElementById('rainToday').textContent = rainToday;
     document.getElementById('rainYesterday').textContent = rainYesterday;
     document.getElementById('windDisplay').textContent = windMph != null ? 'Wind: ' + windMph + ' mph' : 'Wind: —';
-    document.getElementById('gustDisplay').textContent = gustToday != null ? 'Gust: ' + gustToday + ' mph' : 'Gust: —';
+    document.getElementById('highestDisplay').textContent = highestToday != null ? 'Highest: ' + highestToday + ' mph' : 'Highest: —';
     document.getElementById('humidityDisplay').textContent = humidity != null ? 'Humidity: ' + Math.round(humidity) + '%' : 'Humidity: —';
-
     if (tempF != null && humidity != null){
       const hi = heatIndex(tempF, humidity);
       document.getElementById('heatIndex').textContent = hi != null ? 'Feels Like ' + hi + '°' : '';
     } else {
       document.getElementById('heatIndex').textContent = '';
     }
-
     document.getElementById('status').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
   } catch (err){
     console.error(err);
     document.getElementById('status').textContent = 'Weather error: ' + (err.message || err);
   }
 }
-
 // PWS Data
 async function fetchPWS() {
   const apiKey = "36cdfa6e59d844088dfa6e59d8640844";
   const stationId = "KINHUNTE19";
-
   try {
     // 1. Current observation
     const currentUrl = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
@@ -230,49 +214,50 @@ async function fetchPWS() {
     const data = await res.json();
     const obs = data.observations?.[0];
     if (!obs) throw new Error("No observation data");
-
     document.getElementById("temp").textContent = Math.round(obs.imperial.temp) + "°F";
     document.getElementById("weatherIcon").textContent = "🌡️";
     document.getElementById("heatIndex").textContent = "Real Feel " + Math.round(obs.imperial.heatIndex) + "°";
-
     const wind = obs.imperial.windSpeed;
-    const gust = obs.imperial.windGust;
     document.getElementById("windDisplay").textContent = wind != null ? "Wind: " + Math.round(wind) + " mph" : "Wind: —";
-    document.getElementById("gustDisplay").textContent = gust != null ? "Gust: " + Math.round(gust) + " mph" : "Gust: —";
-
+    // Highest will be set from daily summary below (fallback to current gust if summary missing)
+    document.getElementById("highestDisplay").textContent = obs.imperial.windGust != null ? "Highest: " + Math.round(obs.imperial.windGust) + " mph" : "Highest: —";
     document.getElementById("rainToday").textContent = (obs.imperial.precipTotal ?? 0) + "\"";
     document.getElementById("humidityDisplay").textContent = obs.humidity != null ? "Humidity: " + obs.humidity + "%" : "Humidity: —";
     document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
-
-    // 2. Yesterday rain – find by actual date instead of array index
+    // 2. Daily summary (yesterday rain + today's highest wind)
     const summaryUrl = `https://api.weather.com/v2/pws/dailysummary/7day?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
-
     try {
       const sumRes = await fetch(summaryUrl);
       if (!sumRes.ok) throw new Error("Summary failed");
       const sumData = await sumRes.json();
       const summaries = sumData.summaries || [];
-
-      // Calculate yesterday's date string in local time (YYYY-MM-DD)
+      // Calculate today & yesterday date strings in local time (YYYY-MM-DD)
+      const now = new Date();
+      const todayStr = now.getFullYear() + "-" +
+                      String(now.getMonth() + 1).padStart(2, "0") + "-" +
+                      String(now.getDate()).padStart(2, "0");
       const yest = new Date();
       yest.setDate(yest.getDate() - 1);
       const yestStr = yest.getFullYear() + "-" +
                       String(yest.getMonth() + 1).padStart(2, "0") + "-" +
                       String(yest.getDate()).padStart(2, "0");
-
-      // Look for a summary whose local date matches yesterday
-      let found = null;
+      let foundToday = null;
+      let foundYest = null;
       for (const s of summaries) {
-        // obsTimeLocal looks like "2026-09-05 23:59:31"
         const localDate = (s.obsTimeLocal || "").slice(0, 10);
-        if (localDate === yestStr) {
-          found = s;
-          break;
+        if (localDate === todayStr) foundToday = s;
+        if (localDate === yestStr) foundYest = s;
+      }
+      // Highest wind of the day (prefer windspeedHigh)
+      if (foundToday && foundToday.imperial) {
+        const high = foundToday.imperial.windspeedHigh ?? foundToday.imperial.windgustHigh;
+        if (high != null) {
+          document.getElementById("highestDisplay").textContent = "Highest: " + Math.round(high) + " mph";
         }
       }
-
-      if (found && found.imperial && found.imperial.precipTotal != null) {
-        document.getElementById("rainYesterday").textContent = found.imperial.precipTotal + "\"";
+      // Yesterday rain
+      if (foundYest && foundYest.imperial && foundYest.imperial.precipTotal != null) {
+        document.getElementById("rainYesterday").textContent = foundYest.imperial.precipTotal + "\"";
       } else {
         // Fallback: try second-to-last entry
         if (summaries.length >= 2) {
@@ -283,10 +268,9 @@ async function fetchPWS() {
         }
       }
     } catch (e) {
-      console.warn("Yesterday rain unavailable", e);
+      console.warn("Daily summary unavailable", e);
       document.getElementById("rainYesterday").textContent = "—";
     }
-
   } catch (err) {
     console.error(err);
     document.getElementById("status").textContent = "PWS error: " + (err.message || err);
@@ -299,14 +283,12 @@ function updateFromSource(){
   if (src === 'outdoor') fetchOutdoorWeather(loc);
   else fetchPWS();
 }
-
 // Settings
 const sourceSelect = document.getElementById('sourceSelect');
 const locationSelect = document.getElementById('locationSelect');
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsPanel = document.getElementById('settingsPanel');
 const closeSettings = document.getElementById('closeSettings');
-
 function loadSettings(){
   try{
     const s = localStorage.getItem('bigtime.settings');
@@ -325,7 +307,6 @@ function saveSettings(){
     }));
   }catch(e){}
 }
-
 settingsBtn.addEventListener('click', () => settingsPanel.classList.add('open'));
 closeSettings.addEventListener('click', () => {
   settingsPanel.classList.remove('open');
@@ -340,7 +321,6 @@ locationSelect.addEventListener('change', () => {
   saveSettings();
   if (sourceSelect.value === 'outdoor') fetchOutdoorWeather(locationSelect.value);
 });
-
 // Start
 loadSettings();
 updateFromSource();
