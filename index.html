@@ -217,12 +217,13 @@ async function fetchOutdoorWeather(key){
   }
 }
 
-// PWS
+// PWS Data
 async function fetchPWS() {
   const apiKey = "36cdfa6e59d844088dfa6e59d8640844";
   const stationId = "KINHUNTE19";
 
   try {
+    // 1. Current observation
     const currentUrl = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
     const res = await fetch(currentUrl);
     if (!res.ok) throw new Error("Current observation failed (" + res.status + ")");
@@ -243,30 +244,46 @@ async function fetchPWS() {
     document.getElementById("humidityDisplay").textContent = obs.humidity != null ? "Humidity: " + obs.humidity + "%" : "Humidity: —";
     document.getElementById("status").textContent = "PWS updated: " + new Date().toLocaleTimeString();
 
-    // Yesterday rain
-    const yest = new Date();
-    yest.setDate(yest.getDate() - 1);
-    const yestStr = yest.getFullYear().toString() +
-                    String(yest.getMonth() + 1).padStart(2, '0') +
-                    String(yest.getDate()).padStart(2, '0');
+    // 2. Yesterday rain – find by actual date instead of array index
+    const summaryUrl = `https://api.weather.com/v2/pws/dailysummary/7day?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
 
-    const histUrl = `https://api.weather.com/v2/pws/history/daily?stationId=${stationId}&format=json&units=e&date=${yestStr}&apiKey=${apiKey}`;
-    
     try {
-      const histRes = await fetch(histUrl);
-      if (histRes.ok) {
-        const histData = await histRes.json();
-        const histObs = histData.observations?.[0];
-        if (histObs && histObs.imperial) {
-          document.getElementById("rainYesterday").textContent = (histObs.imperial.precipTotal ?? 0) + "\"";
+      const sumRes = await fetch(summaryUrl);
+      if (!sumRes.ok) throw new Error("Summary failed");
+      const sumData = await sumRes.json();
+      const summaries = sumData.summaries || [];
+
+      // Calculate yesterday's date string in local time (YYYY-MM-DD)
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      const yestStr = yest.getFullYear() + "-" +
+                      String(yest.getMonth() + 1).padStart(2, "0") + "-" +
+                      String(yest.getDate()).padStart(2, "0");
+
+      // Look for a summary whose local date matches yesterday
+      let found = null;
+      for (const s of summaries) {
+        // obsTimeLocal looks like "2026-09-05 23:59:31"
+        const localDate = (s.obsTimeLocal || "").slice(0, 10);
+        if (localDate === yestStr) {
+          found = s;
+          break;
+        }
+      }
+
+      if (found && found.imperial && found.imperial.precipTotal != null) {
+        document.getElementById("rainYesterday").textContent = found.imperial.precipTotal + "\"";
+      } else {
+        // Fallback: try second-to-last entry
+        if (summaries.length >= 2) {
+          const fallback = summaries[summaries.length - 2];
+          document.getElementById("rainYesterday").textContent = (fallback.imperial?.precipTotal ?? 0) + "\"";
         } else {
           document.getElementById("rainYesterday").textContent = "—";
         }
-      } else {
-        document.getElementById("rainYesterday").textContent = "—";
       }
     } catch (e) {
-      console.warn("Yesterday rain failed", e);
+      console.warn("Yesterday rain unavailable", e);
       document.getElementById("rainYesterday").textContent = "—";
     }
 
@@ -275,7 +292,6 @@ async function fetchPWS() {
     document.getElementById("status").textContent = "PWS error: " + (err.message || err);
   }
 }
-
 // Source switcher
 function updateFromSource(){
   const src = document.getElementById('sourceSelect').value;
